@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -21,7 +18,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-2">Your Inboxes</h3>
-                  <p className="text-gray-500">You don't have any inboxes yet.</p>
+                  <p className="text-gray-500">You don&apos;t have any inboxes yet.</p>
                   <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
                     Create Inbox
                   </button>
@@ -29,7 +26,7 @@ export default function Dashboard() {
                 
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium mb-2">Your Domains</h3>
-                  <p className="text-gray-500">You don't have any domains yet.</p>
+                  <p className="text-gray-500">You don&apos;t have any domains yet.</p>
                   <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
                     Add Domain
                   </button>
