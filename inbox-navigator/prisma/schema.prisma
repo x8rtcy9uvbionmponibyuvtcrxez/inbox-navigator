@@ -1,0 +1,331 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspaces     WorkspaceMember[]
+  ownedWorkspaces Workspace[]      @relation("WorkspaceOwner")
+  createdClients Client[]          @relation("ClientCreator")
+  createdDomains Domain[]          @relation("DomainCreator")
+  createdInboxes Inbox[]           @relation("InboxCreator")
+  createdOrders  Order[]           @relation("OrderCreator")
+  createdRequests Request[]        @relation("RequestCreator")
+  assignedRequests Request[]       @relation("RequestAssignee")
+  personas       Persona[]
+  sendingAccounts SendingAccount[]
+
+  @@map("users")
+}
+
+// Workspace Management
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  ownerId     String   @map("owner_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  WorkspaceMember[]
+  clients  Client[]
+  domains  Domain[]
+  inboxes  Inbox[]
+  orders   Order[]
+  subscriptions Subscription[]
+  requests Request[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  role        Role     @default(MEMBER)
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+// Client Management
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  company     String?
+  phone       String?
+  address     String?
+  workspaceId String   @map("workspace_id")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("ClientCreator", fields: [createdById], references: [id])
+  domains   Domain[]
+  inboxes   Inbox[]
+  orders    Order[]
+
+  @@map("clients")
+}
+
+// Domain Management
+model Domain {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  redirectUrl String      @map("redirect_url")
+  status      DomainStatus @default(PENDING)
+  clientId    String      @map("client_id")
+  workspaceId String      @map("workspace_id")
+  createdById String      @map("created_by_id")
+  dateOfPurchase DateTime @map("date_of_purchase")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("DomainCreator", fields: [createdById], references: [id])
+  inboxes   Inbox[]
+
+  @@map("domains")
+}
+
+// Inbox Management
+model Inbox {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  status         InboxStatus @default(PENDING)
+  esp            ESP        @default(GMAIL)
+  domainId       String     @map("domain_id")
+  clientId       String     @map("client_id")
+  workspaceId    String     @map("workspace_id")
+  createdById    String     @map("created_by_id")
+  subscriptionId String?    @map("subscription_id")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  domain       Domain        @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy    User          @relation("InboxCreator", fields: [createdById], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  persona      Persona?
+
+  @@map("inboxes")
+}
+
+// Order Management
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique @map("order_number")
+  status      OrderStatus @default(PENDING)
+  inboxCount  Int         @map("inbox_count")
+  domainCount Int         @map("domain_count")
+  totalAmount Decimal     @map("total_amount")
+  clientId    String      @map("client_id")
+  workspaceId String      @map("workspace_id")
+  createdById String      @map("created_by_id")
+  subscriptionId String?  @map("subscription_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy    User          @relation("OrderCreator", fields: [createdById], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@map("orders")
+}
+
+// Subscription Management
+model Subscription {
+  id              String             @id @default(cuid())
+  name            String
+  status          SubscriptionStatus @default(ACTIVE)
+  amount          Decimal
+  interval        SubscriptionInterval @default(MONTHLY)
+  nextBilling     DateTime           @map("next_billing")
+  inboxesIncluded Int                @map("inboxes_included")
+  domainsIncluded Int                @map("domains_included")
+  workspaceId     String             @map("workspace_id")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inboxes   Inbox[]
+  orders    Order[]
+
+  @@map("subscriptions")
+}
+
+// Persona Management
+model Persona {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  bio       String?
+  avatarUrl String?  @map("avatar_url")
+  userId    String   @map("user_id")
+  inboxId   String?  @unique @map("inbox_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inbox Inbox? @relation(fields: [inboxId], references: [id])
+
+  @@map("personas")
+}
+
+// Sending Account Management
+model SendingAccount {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  provider    String
+  status      SendingAccountStatus @default(ACTIVE)
+  dailyLimit  Int      @map("daily_limit")
+  usedToday   Int      @default(0) @map("used_today")
+  credentials Json?    // Encrypted credentials
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sending_accounts")
+}
+
+// Request Management
+model Request {
+  id          String      @id @default(cuid())
+  type        RequestType
+  status      RequestStatus @default(PENDING)
+  title       String
+  description String?
+  priority    Priority    @default(MEDIUM)
+  workspaceId String      @map("workspace_id")
+  createdById String      @map("created_by_id")
+  assignedToId String?    @map("assigned_to_id")
+  submittedOn DateTime    @default(now()) @map("submitted_on")
+  resolvedAt  DateTime?   @map("resolved_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("RequestCreator", fields: [createdById], references: [id])
+  assignedTo User?    @relation("RequestAssignee", fields: [assignedToId], references: [id])
+
+  @@map("requests")
+}
+
+// Enums
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum DomainStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  EXPIRED
+}
+
+enum InboxStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  EXPIRED
+}
+
+enum ESP {
+  GMAIL
+  OUTLOOK
+  YAHOO
+  APPLE_MAIL
+  CUSTOM_SMTP
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAUSED
+  EXPIRED
+}
+
+enum SubscriptionInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SendingAccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum RequestType {
+  DOMAIN_SETUP
+  INBOX_CREATION
+  BILLING_QUERY
+  TECHNICAL_SUPPORT
+  FEATURE_REQUEST
+  BUG_REPORT
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
