@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         name: customerName || 'Test User',
         email: customerEmail,
         workspaceId: workspace.id,
-        productsBought: '["inbox_basic"]'
+        productsBought: ['inbox_basic']
       }
     });
 
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
         domainCount: Math.min(quantity, 3),
         productId: 'prod_test',
         priceId: 'price_test',
-        productsBought: '["inbox_basic"]',
-        typesOfInboxes: `["${InboxType.GSUITE}"]`,
+        productsBought: ['inbox_basic'],
+        typesOfInboxes: [InboxType.GSUITE],
         orderDate: new Date()
       }
     });
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           password: 'testpassword123',
           status: 'ACTIVE',
           esp: 'GSUITE',
-          tags: '["test", "demo"]'
+          tags: ['test', 'demo']
         }
       });
       inboxes.push(inbox);
