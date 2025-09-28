@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button"
-import { Mail, Globe, ShoppingCart, Users, Plus, Minus } from "lucide-react"
+import { Mail, Globe, ShoppingCart, Users, Plus, Minus, TestTube } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useState, useEffect } from "react"
@@ -9,12 +9,78 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+interface DashboardStats {
+  totalInboxes: number;
+  totalDomains: number;
+  totalOrders: number;
+  totalClients: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [showProductModal, setShowProductModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalInboxes: 0,
+    totalDomains: 0,
+    totalOrders: 0,
+    totalClients: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [isCreatingDummy, setIsCreatingDummy] = useState(false);
+
+  // Fetch dashboard stats
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/dashboard/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Create dummy order
+  const createDummyOrder = async () => {
+    if (!user) return;
+    
+    setIsCreatingDummy(true);
+    try {
+      const response = await fetch('/api/test/create-dummy-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerEmail: user.email,
+          customerName: user.name,
+          quantity: 2 // Create 2 inboxes for testing
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Success! Created ${data.message}`);
+        // Refresh stats
+        await fetchStats();
+      } else {
+        console.error('Failed to create dummy order:', data);
+        alert('Failed to create dummy order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating dummy order:', error);
+      alert('Failed to create dummy order. Please try again.');
+    } finally {
+      setIsCreatingDummy(false);
+    }
+  };
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -22,6 +88,13 @@ export default function DashboardPage() {
       router.replace('/auth/signin');
     }
   }, [user, loading, router]);
+
+  // Fetch stats when component mounts
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user]);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -97,6 +170,15 @@ export default function DashboardPage() {
             >
               <Plus className="mr-2 h-4 w-4" /> New Inbox
             </Button>
+            <Button 
+              onClick={createDummyOrder}
+              disabled={isCreatingDummy}
+              variant="outline"
+              className="h-9"
+            >
+              <TestTube className="mr-2 h-4 w-4" /> 
+              {isCreatingDummy ? 'Creating...' : 'Create Test Data'}
+            </Button>
           </div>
         </div>
       </section>
@@ -109,8 +191,10 @@ export default function DashboardPage() {
             <Mail className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="text-2xl font-bold">15</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.totalInboxes}
+            </div>
+            <p className="text-xs text-muted-foreground">Real data from database</p>
           </div>
         </div>
 
@@ -120,8 +204,10 @@ export default function DashboardPage() {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">+1 from last month</p>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.totalDomains}
+            </div>
+            <p className="text-xs text-muted-foreground">Real data from database</p>
           </div>
         </div>
 
@@ -131,8 +217,10 @@ export default function DashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">+1 from last month</p>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.totalOrders}
+            </div>
+            <p className="text-xs text-muted-foreground">Real data from database</p>
           </div>
         </div>
 
@@ -142,8 +230,10 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">+1 from last month</p>
+            <div className="text-2xl font-bold">
+              {statsLoading ? '...' : stats.totalClients}
+            </div>
+            <p className="text-xs text-muted-foreground">Real data from database</p>
           </div>
         </div>
       </section>
@@ -153,13 +243,26 @@ export default function DashboardPage() {
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <h2 className="text-lg font-semibold mb-4">Welcome to Inbox Navigator</h2>
           <p className="text-muted-foreground mb-4">
-            Your comprehensive email management platform. Get started by creating your first inbox.
+            Your comprehensive email management platform. The dashboard above shows real data from your database.
+            Use the "Create Test Data" button to add sample inboxes, domains, and orders to see the data populate.
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={handleNewInbox}>
-              <Plus className="mr-2 h-4 w-4" /> Create Inbox
+              <Plus className="mr-2 h-4 w-4" /> Create Inbox (Stripe)
+            </Button>
+            <Button onClick={createDummyOrder} disabled={isCreatingDummy} variant="outline">
+              <TestTube className="mr-2 h-4 w-4" /> 
+              {isCreatingDummy ? 'Creating Test Data...' : 'Create Test Data (No Stripe)'}
             </Button>
           </div>
+          {stats.totalInboxes > 0 && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800">
+                ✅ Database is populated! You have {stats.totalInboxes} inbox(es), {stats.totalDomains} domain(s), 
+                and {stats.totalOrders} order(s) in your database.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
