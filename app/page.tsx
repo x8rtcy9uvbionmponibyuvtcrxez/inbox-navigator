@@ -115,9 +115,7 @@ export default function DashboardPage() {
   }
 
   const handleNewInbox = () => {
-    // For testing, go directly to onboarding with a dummy session
-    const dummySessionId = `test-session-${Date.now()}`;
-    router.push(`/onboarding?session_id=${dummySessionId}`);
+    setShowProductModal(true);
   };
 
   const handleProductSelection = async () => {

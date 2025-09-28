@@ -13,21 +13,48 @@ export default function OnboardingSuccessPage() {
   const [countdown, setCountdown] = useState(10)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          router.push('/dashboard')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    // Get session_id from URL params
+    const urlParams = new URLSearchParams(window.location.search)
+    const sessionId = urlParams.get('session_id')
+    
+    if (sessionId) {
+      // Redirect to onboarding with the session ID
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            router.push(`/onboarding?session_id=${sessionId}`)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
 
-    return () => clearInterval(timer)
+      return () => clearInterval(timer)
+    } else {
+      // Fallback to dashboard if no session ID
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            router.push('/dashboard')
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    }
   }, [router])
 
-  const handleGoToDashboard = () => {
-    router.push('/dashboard')
+  const handleGoToOnboarding = () => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const sessionId = urlParams.get('session_id')
+    
+    if (sessionId) {
+      router.push(`/onboarding?session_id=${sessionId}`)
+    } else {
+      router.push('/dashboard')
+    }
   }
 
         return (
@@ -37,14 +64,14 @@ export default function OnboardingSuccessPage() {
           <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Onboarding Complete! 🎉
+          Payment Successful! 🎉
         </h1>
         <p className="text-lg text-gray-600 mb-2">
-          Thank you for providing your setup details.
+          Your payment has been processed successfully.
         </p>
         <p className="text-gray-500">
-          We'll start configuring your workspace based on your requirements.
-                </p>
+          Now let's set up your workspace with your requirements.
+        </p>
               </div>
 
       {order && (
@@ -127,14 +154,14 @@ export default function OnboardingSuccessPage() {
 
       <div className="text-center mt-8">
         <Button 
-          onClick={handleGoToDashboard}
+          onClick={handleGoToOnboarding}
           className="px-8 py-3 text-base"
         >
-          Go to Dashboard
+          Start Onboarding
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
         <p className="text-sm text-gray-500 mt-4">
-          Redirecting automatically in {countdown} seconds...
+          Redirecting to onboarding in {countdown} seconds...
         </p>
       </div>
     </main>
