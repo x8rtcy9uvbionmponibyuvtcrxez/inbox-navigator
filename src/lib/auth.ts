@@ -1,69 +1,86 @@
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcrypt';
-import { prisma } from './prisma';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import CryptoJS from 'crypto-js';
 
-export const authOptions: NextAuthOptions = {
-  session: {
-    strategy: 'jwt',
-  },
-  pages: {
-    signIn: '/auth/signin',
-  },
-  providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-minimum-32-characters';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'fallback-encryption-key-32-chars';
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  workspaceId?: string;
+  role?: string;
+}
 
-        if (!user || !user.password) {
-          return null;
-        }
+// Password hashing
+export async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
+}
 
-        const isPasswordValid = await compare(credentials.password, user.password);
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return await bcrypt.compare(password, hash);
+}
 
-        if (!isPasswordValid) {
-          return null;
-        }
+// JWT token management
+export function generateToken(payload: JWTPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+}
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    session: ({ session, token }) => {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-        },
-      };
-    },
-    jwt: ({ token, user }) => {
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-        };
-      }
-      return token;
-    },
-  },
-}; 
+export function verifyToken(token: string): JWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (error) {
+    return null;
+  }
+}
+
+// Encryption utilities for sensitive data
+export function encrypt(text: string): string {
+  return CryptoJS.AES.encrypt(text, ENCRYPTION_KEY).toString();
+}
+
+export function decrypt(encryptedText: string): string {
+  const bytes = CryptoJS.AES.decrypt(encryptedText, ENCRYPTION_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+// Role-based access control
+export enum Role {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER',
+  VIEWER = 'VIEWER'
+}
+
+export function hasPermission(userRole: Role, requiredRole: Role): boolean {
+  const roleHierarchy = {
+    [Role.VIEWER]: 1,
+    [Role.MEMBER]: 2,
+    [Role.ADMIN]: 3,
+    [Role.OWNER]: 4
+  };
+  
+  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+}
+
+export function requireRole(requiredRole: Role) {
+  return (req: any, res: any, next: any) => {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const payload = verifyToken(token);
+    if (!payload || !payload.role) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (!hasPermission(payload.role as Role, requiredRole)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    req.user = payload;
+    next();
+  };
+}

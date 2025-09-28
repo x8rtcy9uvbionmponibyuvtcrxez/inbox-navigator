@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,83 +10,457 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// CORE USER MANAGEMENT
+// ============================================================================
+
 model User {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
+  email         String   @unique
   name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  fullName      String?  @map("full_name")
+  passwordHash  String?  @map("password_hash")
+  avatarUrl     String?  @map("avatar_url")
+  timezone      String   @default("UTC")
+  lastLogin     DateTime? @map("last_login")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  stripeCustomerId       String?   @unique
-  stripeSubscriptionId   String?   @unique
-  stripePriceId         String?
-  stripeCurrentPeriodEnd DateTime?
+  // Relations
+  workspaces     WorkspaceMember[]
+  ownedWorkspaces Workspace[]      @relation("WorkspaceOwner")
+  createdRequests Request[]        @relation("RequestCreator")
+  assignedRequests Request[]       @relation("RequestAssignee")
+  personas       Persona[]
+  sendingAccounts SendingAccount[]
 
-  inboxes     Inbox[]
+  @@map("users")
+}
+
+model Workspace {
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  description           String?
+  primaryUserId         String   @map("primary_user_id")
+  slackChannelId        String?  @map("slack_channel_id")
+  primaryClickupTaskId  String?  @map("primary_clickup_task_id")
+  mainDriveFolderUrl    String?  @map("main_drive_folder_url")
+  mainSheetUrl          String?  @map("main_sheet_url")
+  subscriptionStatus    String   @default("free") @map("subscription_status")
+  stripeCustomerId      String?  @map("stripe_customer_id")
+  stripeSubscriptionId  String?  @map("stripe_subscription_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  primaryUser User              @relation("WorkspaceOwner", fields: [primaryUserId], references: [id])
+  members     WorkspaceMember[]
+  clients     Client[]
+  orders      Order[]
   domains     Domain[]
-  accounts    Account[]
-  sessions    Session[]
+  inboxes     Inbox[]
+  personas    Persona[]
+  requests    Request[]
+  subscriptions Subscription[]
+  onboardingData OnboardingData[]
+  sendingAccounts SendingAccount[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  role        Role     @default(MEMBER)
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+// ============================================================================
+// CLIENT & ORDER MANAGEMENT
+// ============================================================================
+
+model Client {
+  id                        String   @id @default(cuid())
+  workspaceId               String   @map("workspace_id")
+  name                      String
+  email                     String?
+  company                   String?
+  website                   String?
+  address                  String?
+  status                   ClientStatus @default(ACTIVE)
+  stripeCustomerId         String?  @map("stripe_customer_id")
+  onboardingFormSubmissionId String? @map("onboarding_form_submission_id")
+  activeInboxesCount       Int      @default(0) @map("active_inboxes_count")
+  lifetimeInboxesCount     Int      @default(0) @map("lifetime_inboxes_count")
+  totalGsuite              Int      @default(0) @map("total_gsuite")
+  totalOutlook             Int      @default(0) @map("total_outlook")
+  productsBought           String[] @map("products_bought")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  orders        Order[]
+  subscriptions Subscription[]
+  domains       Domain[]
+  inboxes       Inbox[]
+  personas      Persona[]
+  sendingAccounts SendingAccount[]
+
+  @@map("clients")
+}
+
+model Order {
+  id                    String      @id @default(cuid())
+  workspaceId           String      @map("workspace_id")
+  clientId              String      @map("client_id")
+  orderNumber           String      @unique @map("order_number")
+  assignee              String?
+  stripeSessionId       String?     @unique @map("stripe_session_id")
+  stripeCustomerId      String?     @map("stripe_customer_id")
+  status                OrderStatus @default(PLACED)
+  totalAmount           Int         @map("total_amount") // in cents
+  currency              String      @default("usd")
+  quantity              Int
+  inboxCount            Int         @map("inbox_count")
+  domainCount           Int         @map("domain_count")
+  productId             String      @map("product_id")
+  priceId               String      @map("price_id")
+  productsBought        String[]    @map("products_bought")
+  typesOfInboxes        InboxType[] @map("types_of_inboxes")
+  orderDate             DateTime    @default(now()) @map("order_date")
+  fulfilledDate         DateTime?   @map("fulfilled_date")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  client        Client        @relation(fields: [clientId], references: [id])
+  subscription  Subscription?
+  onboardingData OnboardingData?
+
+  @@map("orders")
+}
+
+model Subscription {
+  id                    String            @id @default(cuid())
+  orderId               String            @unique @map("order_id")
+  clientId              String            @map("client_id")
+  workspaceId           String            @map("workspace_id")
+  stripeSubscriptionId  String            @map("stripe_subscription_id")
+  status                SubscriptionStatus @default(ACTIVE)
+  plan                  SubscriptionPlan  @default(BASIC)
+  billingPeriod         BillingPeriod     @default(MONTHLY)
+  amount                Decimal           @db.Decimal(10, 2)
+  startedAt             DateTime          @map("started_at")
+  cancelsAt             DateTime?         @map("cancels_at")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  order     Order  @relation(fields: [orderId], references: [id])
+  client    Client @relation(fields: [clientId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// ============================================================================
+// DOMAIN & INBOX MANAGEMENT
+// ============================================================================
+
+model Domain {
+  id                String       @id @default(cuid())
+  workspaceId       String       @map("workspace_id")
+  clientId          String?      @map("client_id")
+  name              String       @unique
+  redirectUrl       String?      @map("redirect_url")
+  dateOfPurchase    DateTime?    @map("date_of_purchase")
+  dnsRecordId       String?      @map("dns_record_id")
+  boughtByInboxNav  Boolean      @default(false) @map("bought_by_inbox_nav")
+  stripeCustomerId  String?      @map("stripe_customer_id")
+  status            DomainStatus @default(PENDING)
+  dnsRecords        Json?        @map("dns_records")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+  inboxes   Inbox[]
+
+  @@map("domains")
 }
 
 model Inbox {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  status    InboxStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  domainId  String
+  id                  String      @id @default(cuid())
+  workspaceId         String      @map("workspace_id")
+  clientId            String?     @map("client_id")
+  domainId            String      @map("domain_id")
+  email               String      @unique
+  name                String?
+  password            String?     // Encrypted
+  status              InboxStatus @default(PENDING)
+  esp                 InboxESP    @default(GSUITE)
+  warmupStatus        WarmupStatus @default(OFF) @map("warmup_status")
+  warmupActivatedAt   DateTime?   @map("warmup_activated_at")
+  subscriptionId      String?     @map("subscription_id")
+  stripeSubscriptionId String?    @map("stripe_subscription_id")
+  personaId           String?     @map("persona_id")
+  inboxRecordId       String?     @map("inbox_record_id")
+  tags                String[]
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+  domain    Domain    @relation(fields: [domainId], references: [id])
+  personas  Persona[]
+
+  @@map("inboxes")
 }
 
-model Domain {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  isVerified   Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  userId       String
+model Persona {
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  clientId      String?  @map("client_id")
+  inboxId       String?  @map("inbox_id")
+  userId        String?  @map("user_id")
+  fullName      String   @map("full_name")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  profilePhoto  String?  @map("profile_photo")
+  role          String?
+  tags          String[]
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  inboxes      Inbox[]
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+  inbox     Inbox?    @relation(fields: [inboxId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@map("personas")
+}
+
+// ============================================================================
+// ESP INTEGRATION & SENDING
+// ============================================================================
+
+model SendingAccount {
+  id            String                @id @default(cuid())
+  workspaceId   String                @map("workspace_id")
+  clientId      String?               @map("client_id")
+  userId        String?               @map("user_id")
+  label         String
+  software      SendingSoftware       @default(SMARTLEAD)
+  apiKey        String?               @map("api_key") // Encrypted
+  username      String?
+  password      String?               // Encrypted
+  status        SendingAccountStatus  @default(CONNECTED)
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@map("sending_accounts")
+}
+
+// ============================================================================
+// SUPPORT & REQUESTS
+// ============================================================================
+
+model Request {
+  id          String        @id @default(cuid())
+  workspaceId String        @map("workspace_id")
+  type        RequestType
+  targetId    String?       @map("target_id") // e.g., inbox_id, domain_id
+  submittedBy String        @map("submitted_by")
+  assigneeId  String?       @map("assignee_id")
+  status      RequestStatus @default(PENDING)
+  priority    Priority      @default(MEDIUM)
+  title       String
+  description String?
+  comments    String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  submitter User      @relation("RequestCreator", fields: [submittedBy], references: [id])
+  assignee  User?     @relation("RequestAssignee", fields: [assigneeId], references: [id])
+
+  @@map("requests")
+}
+
+// ============================================================================
+// ONBOARDING SYSTEM
+// ============================================================================
+
+model OnboardingData {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  orderId     String   @unique @map("order_id")
+  
+  // Step 1: Business Profile & Tagging
+  businessType      String?  @map("business_type")
+  industry          String?
+  companySize       String?  @map("company_size")
+  website           String?
+  
+  // Domain Preferences
+  preferredDomains  String[] @map("preferred_domains")
+  domainRequirements String? @map("domain_requirements")
+  
+  // Persona Setup
+  personas          Json?    // Array of persona objects
+  personaCount      Int      @default(0) @map("persona_count")
+  
+  // ESP Integration
+  espProvider       String?  @map("esp_provider")
+  espCredentials    Json?    @map("esp_credentials")
+  
+  // Special Requirements
+  specialRequirements String? @map("special_requirements")
+  
+  // Progress Tracking
+  stepCompleted     Int      @default(0) @map("step_completed")
+  isCompleted       Boolean  @default(false) @map("is_completed")
+  completedAt       DateTime? @map("completed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+
+  @@map("onboarding_data")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ClientStatus {
+  ACTIVE
+  PAUSED
+  INACTIVE
+}
+
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAUSED
+  EXPIRED
+}
+
+enum SubscriptionPlan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  YEARLY
+}
+
+enum DomainStatus {
+  PENDING
+  LIVE
+  FAILED
+  EXPIRED
 }
 
 enum InboxStatus {
   ACTIVE
-  ARCHIVED
+  INACTIVE
+  PENDING
   SUSPENDED
+  DELETED
 }
 
-// NextAuth.js Models
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token          String?  @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
+enum InboxESP {
+  GSUITE
+  OUTLOOK
+  OTHER
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum InboxType {
+  GSUITE
+  OUTLOOK
+  CUSTOM
+}
+
+enum WarmupStatus {
+  ON
+  OFF
+  PAUSED
+}
+
+enum SendingSoftware {
+  SMARTLEAD
+  INSTANTLY
+  MAILREACH
+  LEMWARM
+  OTHER
+}
+
+enum SendingAccountStatus {
+  CONNECTED
+  FAILED
+  DISCONNECTED
+}
+
+enum RequestType {
+  REPLACE_INBOX
+  CHANGE_NAME
+  RECONNECT
+  DOMAIN_ISSUE
+  BILLING_ISSUE
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }

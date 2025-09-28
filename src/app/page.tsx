@@ -1,108 +1,75 @@
-import Link from 'next/link';
+import { MetricCard } from "@/components/metric-card"
+import { ChartCard } from "@/components/chart-card"
+import { ActivityList } from "@/components/activity-list"
+import { Button } from "@/components/ui/button"
+import { Mail, Globe, ShoppingCart, Users, Plus, LinkIcon, UserPlus } from "lucide-react"
 
-export default function Home() {
+export default function DashboardPage() {
+  console.log("[v0] DashboardPage rendering content-only")
   return (
-    <div className="bg-white">
-      {/* Hero section */}
-      <div className="relative isolate pt-14">
-        <div className="py-24 sm:py-32">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-                Inbox Navigator
-              </h1>
-              <p className="mt-6 text-lg leading-8 text-gray-600">
-                Streamline your cold email campaigns with powerful inbox management tools. Organize, track, and optimize your outreach efforts.
-              </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link
-                  href="/auth/signup"
-                  className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                >
-                  Get started
-                </Link>
-                <Link href="/auth/signin" className="text-sm font-semibold leading-6 text-gray-900">
-                  Sign in <span aria-hidden="true">→</span>
-                </Link>
-              </div>
-            </div>
+    <>
+      {/* Header */}
+      <section className="mb-6 md:mb-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">Inbox Navigator</h1>
+            <p className="text-pretty text-sm text-muted-foreground">Fast, focused, and ready to ship.</p>
           </div>
-        </div>
-      </div>
 
-      {/* Features section */}
-      <div className="bg-gray-50 py-24 sm:py-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:text-center">
-            <h2 className="text-base font-semibold leading-7 text-indigo-600">Increase productivity</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Everything you need for effective email management
-            </p>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
-              Our comprehensive platform helps you organize, track, and optimize your cold email campaigns.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-              <div className="flex flex-col">
-                <dt className="text-base font-semibold leading-7 text-gray-900">
-                  Multi-workspace management
-                </dt>
-                <dd className="mt-2 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Create and manage multiple workspaces for different campaigns or clients. Keep everything organized in one place.
-                  </p>
-                </dd>
-              </div>
-              <div className="flex flex-col">
-                <dt className="text-base font-semibold leading-7 text-gray-900">
-                  Domain verification
-                </dt>
-                <dd className="mt-2 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Easily verify and manage multiple domains to improve deliverability and maintain sender reputation.
-                  </p>
-                </dd>
-              </div>
-              <div className="flex flex-col">
-                <dt className="text-base font-semibold leading-7 text-gray-900">
-                  Subscription plans
-                </dt>
-                <dd className="mt-2 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">
-                    Choose the plan that fits your needs, from individual users to enterprise teams with advanced features.
-                  </p>
-                </dd>
-              </div>
-            </dl>
+          {/* Quick actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button className="h-9 bg-primary text-primary-foreground">
+              <Plus className="mr-2 h-4 w-4" /> New Inbox
+            </Button>
+            <Button variant="outline" className="h-9 bg-transparent">
+              <LinkIcon className="mr-2 h-4 w-4" /> Connect Domain
+            </Button>
+            <Button variant="outline" className="h-9 bg-transparent">
+              <UserPlus className="mr-2 h-4 w-4" /> Invite Member
+            </Button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA section */}
-      <div className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Ready to streamline your email management?
-            </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600">
-              Start managing your cold email campaigns more effectively today.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/auth/signup"
-                className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                Get started
-              </Link>
-              <Link href="/pricing" className="text-sm font-semibold leading-6 text-gray-900">
-                View pricing <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-          </div>
+      {/* Metrics */}
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCard
+          title="Total Inboxes"
+          value={15}
+          icon={<Mail className="h-5 w-5" />}
+          demo
+          trend={[10, 12, 13, 14, 15, 15, 15, 15]}
+        />
+        <MetricCard
+          title="Active Domains"
+          value={3}
+          icon={<Globe className="h-5 w-5" />}
+          demo
+          trend={[1, 1, 2, 2, 3, 3, 3, 3]}
+        />
+        <MetricCard
+          title="Total Orders"
+          value={3}
+          icon={<ShoppingCart className="h-5 w-5" />}
+          demo
+          trend={[0, 1, 1, 2, 2, 3, 3, 3]}
+        />
+        <MetricCard
+          title="Active Clients"
+          value={2}
+          icon={<Users className="h-5 w-5" />}
+          demo
+          trend={[1, 1, 1, 2, 2, 2, 2, 2]}
+        />
+      </section>
+
+      {/* Grid: chart + activity */}
+      <section className="mt-6 md:mt-8 grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ChartCard />
         </div>
-      </div>
-    </div>
-  );
+        <ActivityList />
+      </section>
+    </>
+  )
 }

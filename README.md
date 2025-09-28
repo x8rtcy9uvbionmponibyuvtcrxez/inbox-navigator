@@ -1,109 +1,36 @@
-# Inbox Navigator
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A SaaS dashboard for efficient cold email management. Manage your inboxes, domains, and email campaigns with a modern, intuitive interface.
+## Getting Started
 
-## Features
+First, run the development server:
 
-- **Authentication**: Sign in with Google, Microsoft, or Email/Password
-- **Workspace Management**: Create and manage multiple workspaces
-- **Subscription Plans**: Free, Pro, and Enterprise tiers with Stripe integration
-- **Email Analytics**: Track open rates, response rates, and other metrics
-- **Domain Management**: Add and manage multiple domains
-- **Dynamic Tables**: Filter, sort, and search through your data
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## Tech Stack
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- **Frontend**: Next.js 15, React 19, TailwindCSS 4
-- **Backend**: Next.js API Routes, PostgreSQL with Prisma ORM
-- **Authentication**: NextAuth.js
-- **Payments**: Stripe
-- **Deployment**: Vercel
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Local Development
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Prerequisites
+## Learn More
 
-- Node.js 20+
-- PostgreSQL database
-- Stripe account for payments integration
+To learn more about Next.js, take a look at the following resources:
 
-### Setup
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Clone the repository
-   ```
-   git clone <repository-url>
-   cd inbox-navigator
-   ```
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-2. Install dependencies
-   ```
-   npm install
-   ```
+## Deploy on Vercel
 
-3. Set up environment variables
-   Create a `.env` file in the root directory with the following variables:
-   ```
-   DATABASE_URL="your-postgres-connection-string"
-   NEXTAUTH_SECRET="your-nextauth-secret"
-   NEXTAUTH_URL="http://localhost:3000"
-   STRIPE_PUBLIC_KEY="your-stripe-public-key"
-   STRIPE_SECRET_KEY="your-stripe-secret-key"
-   ```
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-4. Set up the database
-   ```
-   npx prisma db push
-   ```
-
-5. Start the development server
-   ```
-   npm run dev
-   ```
-
-## Deployment
-
-### Deploying to Vercel
-
-1. Push your code to a Git repository (GitHub, GitLab, etc.)
-
-2. Connect your repository to Vercel:
-   - Go to [vercel.com](https://vercel.com)
-   - Sign up or log in
-   - Click "New Project"
-   - Import your repository
-   - Configure the project settings (Next.js framework preset)
-
-3. Set up environment variables:
-   - Add all the variables from your local `.env` file
-   - Make sure to update `NEXTAUTH_URL` to your production URL
-
-4. Deploy:
-   - Click "Deploy"
-   - Wait for the build to complete
-   - Your app will be available at the provided URL
-
-### Manual Deployment
-
-If you prefer to deploy manually:
-
-1. Build the application
-   ```
-   npm run build
-   ```
-
-2. Start the production server
-   ```
-   npm run start
-   ```
-
-## Project Structure
-
-- `/src/app` - Next.js App Router structure
-- `/src/app/api` - API routes
-- `/src/components` - React components
-- `/prisma` - Database schema and migrations
-- `/public` - Static assets
-
-## License
-
-[MIT](LICENSE)
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

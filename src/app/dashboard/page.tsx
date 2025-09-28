@@ -1,41 +1,94 @@
 'use client';
 
-export default function Dashboard() {
+import { Zap, Crown, Mail, Globe, ShoppingCart, Users } from 'lucide-react';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import PaymentGate from '@/components/payment/PaymentGate';
+
+export default function DashboardPage() {
+  const isFreeTier = true; // Demo mode - always show demo badges
+  
+  const renderDemoBadge = () => (
+    <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+      <Zap className="w-3 h-3 mr-1" />
+      DEMO DATA
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-        </div>
-      </header>
-      <main>
-        <div className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            <div className="rounded-lg border-4 border-dashed border-gray-200 p-4 min-h-96">
-              <h2 className="text-xl font-semibold mb-4">Welcome to Inbox Navigator!</h2>
-              <p className="mb-4">This is your dashboard where you can manage your inboxes and domains.</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium mb-2">Your Inboxes</h3>
-                  <p className="text-gray-500">You don&apos;t have any inboxes yet.</p>
-                  <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                    Create Inbox
-                  </button>
+    <DashboardLayout title="Dashboard" description="Overview of your workspace">
+      <div className="p-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Inboxes</p>
+                  <p className="text-2xl font-bold text-gray-900">15</p>
                 </div>
-                
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium mb-2">Your Domains</h3>
-                  <p className="text-gray-500">You don&apos;t have any domains yet.</p>
-                  <button className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                    Add Domain
+                <Mail className="w-8 h-8 text-blue-500" />
+              </div>
+              {isFreeTier && renderDemoBadge()}
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Domains</p>
+                  <p className="text-2xl font-bold text-gray-900">3</p>
+                </div>
+                <Globe className="w-8 h-8 text-green-500" />
+              </div>
+              {isFreeTier && renderDemoBadge()}
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                  <p className="text-2xl font-bold text-gray-900">3</p>
+                </div>
+                <ShoppingCart className="w-8 h-8 text-purple-500" />
+              </div>
+              {isFreeTier && renderDemoBadge()}
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Active Clients</p>
+                  <p className="text-2xl font-bold text-gray-900">2</p>
+                </div>
+                <Users className="w-8 h-8 text-orange-500" />
+              </div>
+              {isFreeTier && renderDemoBadge()}
+            </div>
+          </div>
+
+          {isFreeTier && (
+            <PaymentGate
+              feature="real inbox management"
+              subscriptionStatus="free"
+              workspaceId="demo_workspace_123"
+              workspaceName="My Workspace"
+            >
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-purple-900">Ready to go live?</h3>
+                    <p className="text-purple-700 mt-1">
+                      Upgrade to start managing real inboxes and domains
+                    </p>
+                  </div>
+                  <button className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2">
+                    <Crown className="w-5 h-5" />
+                    <span>Upgrade Now</span>
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+            </PaymentGate>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
-} 
+}
