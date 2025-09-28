@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
           quantity: quantity,
         },
       ],
-      mode: 'payment',
+      mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail,
