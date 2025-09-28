@@ -3,23 +3,25 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const {
-      sessionId,
-      businessName,
-      businessType,
-      industry,
-      companySize,
-      website,
-      preferredDomains,
-      domainRequirements,
+    const body = await request.json();
+    const { 
+      sessionId, 
+      espPlatform, 
+      stepCompleted, 
+      isCompleted, 
+      customTags,
       personas,
-      espProvider,
-      specialRequirements,
-      stepCompleted,
-      isCompleted,
-    } = await request.json();
+      ...onboardingData 
+    } = body;
 
-    console.log('Onboarding save request:', { sessionId, espProvider, stepCompleted, isCompleted });
+    console.log('Onboarding save request:', { 
+      sessionId, 
+      espPlatform, 
+      stepCompleted, 
+      isCompleted,
+      customTagsCount: customTags?.length || 0,
+      personasCount: personas?.length || 0
+    });
 
     if (!sessionId) {
       return NextResponse.json(
@@ -43,40 +45,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prepare data for database - convert arrays to JSON strings for SQLite
+    const dbData = {
+      ...onboardingData,
+      customTags: customTags ? JSON.stringify(customTags) : null,
+      personas: personas ? JSON.stringify(personas) : null,
+      stepCompleted: stepCompleted || 0,
+      isCompleted: isCompleted || false,
+      completedAt: isCompleted ? new Date() : null,
+    };
+
     // Update or create onboarding data
-    const onboardingData = await prisma.onboardingData.upsert({
+    const onboardingDataResult = await prisma.onboardingData.upsert({
       where: { workspaceId: order.workspaceId },
       update: {
-        businessName,
-        businessType,
-        industry,
-        companySize,
-        website,
-        preferredDomains: preferredDomains || [],
-        domainRequirements,
-        personas: personas || [],
-        espProvider,
-        specialRequirements,
-        stepCompleted: stepCompleted || 0,
-        isCompleted: isCompleted || false,
-        completedAt: isCompleted ? new Date() : null,
+        ...dbData,
+        updatedAt: new Date(),
       },
       create: {
         workspaceId: order.workspaceId,
         orderId: order.id,
-        businessName,
-        businessType,
-        industry,
-        companySize,
-        website,
-        preferredDomains: preferredDomains || [],
-        domainRequirements,
-        personas: personas || [],
-        espProvider,
-        specialRequirements,
-        stepCompleted: stepCompleted || 0,
-        isCompleted: isCompleted || false,
-        completedAt: isCompleted ? new Date() : null,
+        ...dbData,
       },
     });
 
@@ -98,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      onboardingData 
+      onboardingData: onboardingDataResult 
     });
 
   } catch (error) {

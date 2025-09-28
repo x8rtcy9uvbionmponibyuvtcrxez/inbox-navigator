@@ -2,7 +2,23 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle, ArrowRight, Building2, Globe, Users, Mail, Settings } from 'lucide-react';
+import { 
+  CheckCircle, 
+  ArrowRight, 
+  Building2, 
+  Globe, 
+  Users, 
+  Mail, 
+  Settings,
+  Tag,
+  Upload,
+  CreditCard,
+  FileText,
+  Shield,
+  Plus,
+  X,
+  ChevronDown
+} from 'lucide-react';
 
 interface OnboardingStep {
   id: number;
@@ -12,43 +28,104 @@ interface OnboardingStep {
   completed: boolean;
 }
 
+interface OnboardingData {
+  // Step 1: Business Profile & Tagging
+  businessType: string;
+  teamSize: string;
+  industry: string;
+  businessName: string;
+  customTags: string[];
+  
+  // Step 2: Domain Setup
+  domainMethod: 'buy' | 'bring' | 'handle';
+  domainCredits: number;
+  domainCount: number;
+  domainForwardingUrl: string;
+  uploadedDomains: string;
+  domainHost: string;
+  hostingMethod: 'credentials' | 'delegate' | 'dns';
+  hostingUsername: string;
+  hostingPassword: string;
+  hostingToken: string;
+  domainNotes: string;
+  
+  // Step 3: Inbox & Persona Setup
+  personasPerDomain: number;
+  personaFormat: string;
+  personas: Array<{
+    firstName: string;
+    lastName: string;
+    role: string;
+    tags: string[];
+  }>;
+  
+  // Step 4: ESP Integration
+  espPlatform: string;
+  espLoginEmail: string;
+  espPassword: string;
+  espWorkspaceName: string;
+  espApiKey: string;
+  espNotes: string;
+  
+  // Step 5: Final Notes
+  finalNotes: string;
+  uploadedFiles: File[];
+}
+
 function OnboardingSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get('session_id');
   
   const [currentStep, setCurrentStep] = useState(0);
-  const [onboardingData, setOnboardingData] = useState({
-    businessName: '',
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     businessType: '',
+    teamSize: '',
     industry: '',
-    companySize: '',
-    website: '',
-    preferredDomains: [] as string[],
-    domainRequirements: '',
-    personas: [] as Record<string, unknown>[],
-    espProvider: '',
-    specialRequirements: '',
+    businessName: '',
+    customTags: [],
+    domainMethod: 'buy',
+    domainCredits: 0,
+    domainCount: 1,
+    domainForwardingUrl: '',
+    uploadedDomains: '',
+    domainHost: '',
+    hostingMethod: 'credentials',
+    hostingUsername: '',
+    hostingPassword: '',
+    hostingToken: '',
+    domainNotes: '',
+    personasPerDomain: 1,
+    personaFormat: '',
+    personas: [{ firstName: '', lastName: '', role: '', tags: [] }],
+    espPlatform: '',
+    espLoginEmail: '',
+    espPassword: '',
+    espWorkspaceName: '',
+    espApiKey: '',
+    espNotes: '',
+    finalNotes: '',
+    uploadedFiles: []
   });
 
   const steps: OnboardingStep[] = [
     {
       id: 1,
-      title: 'Business Profile',
-      description: 'Tell us about your business',
+      title: 'Business Profile & Tagging',
+      description: 'Tell us about your business and set up tagging',
       icon: Building2,
       completed: currentStep > 0,
     },
     {
       id: 2,
-      title: 'Domain Preferences',
+      title: 'Domain Setup',
       description: 'Configure your email domains',
       icon: Globe,
       completed: currentStep > 1,
     },
     {
       id: 3,
-      title: 'Persona Setup',
+      title: 'Inbox & Persona Setup',
       description: 'Create email personas',
       icon: Users,
       completed: currentStep > 2,
@@ -62,7 +139,7 @@ function OnboardingSuccessContent() {
     },
     {
       id: 5,
-      title: 'Final Review',
+      title: 'Final Notes & Confirmation',
       description: 'Review and complete setup',
       icon: Settings,
       completed: currentStep > 4,
@@ -109,6 +186,46 @@ function OnboardingSuccessContent() {
     }
   };
 
+  const addTag = (tag: string) => {
+    if (tag.trim() && !onboardingData.customTags.includes(tag.trim())) {
+      setOnboardingData({
+        ...onboardingData,
+        customTags: [...onboardingData.customTags, tag.trim()]
+      });
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setOnboardingData({
+      ...onboardingData,
+      customTags: onboardingData.customTags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
+  const addPersona = () => {
+    if (onboardingData.personas.length < 3) {
+      setOnboardingData({
+        ...onboardingData,
+        personas: [...onboardingData.personas, { firstName: '', lastName: '', role: '', tags: [] }]
+      });
+    }
+  };
+
+  const removePersona = (index: number) => {
+    if (onboardingData.personas.length > 1) {
+      setOnboardingData({
+        ...onboardingData,
+        personas: onboardingData.personas.filter((_, i) => i !== index)
+      });
+    }
+  };
+
+  const updatePersona = (index: number, field: string, value: string) => {
+    const updatedPersonas = [...onboardingData.personas];
+    updatedPersonas[index] = { ...updatedPersonas[index], [field]: value };
+    setOnboardingData({ ...onboardingData, personas: updatedPersonas });
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
@@ -127,10 +244,11 @@ function OnboardingSuccessContent() {
             <div className="bg-blue-50 rounded-lg p-4">
               <h3 className="font-semibold text-blue-900 mb-2">What happens next?</h3>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• We&apos;ll configure your email domains</li>
-                <li>• Set up professional email personas</li>
+                <li>• Configure your business profile and tagging system</li>
+                <li>• Set up your email domains</li>
+                <li>• Create email personas for your campaigns</li>
                 <li>• Connect your email service provider</li>
-                <li>• Start managing your inboxes immediately</li>
+                <li>• Review and finalize your setup</li>
               </ul>
             </div>
           </div>
@@ -139,82 +257,120 @@ function OnboardingSuccessContent() {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Business Profile</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Business Profile & Tagging</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business Name *
-                </label>
-                <input
-                  type="text"
-                  value={onboardingData.businessName}
-                  onChange={(e) => setOnboardingData({...onboardingData, businessName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Your Company Name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Business Type
+                  What best describes your business? *
                 </label>
                 <select
                   value={onboardingData.businessType}
                   onChange={(e) => setOnboardingData({...onboardingData, businessType: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select type</option>
-                  <option value="startup">Startup</option>
-                  <option value="small-business">Small Business</option>
-                  <option value="enterprise">Enterprise</option>
-                  <option value="agency">Agency</option>
-                  <option value="freelancer">Freelancer</option>
+                  <option value="">Select business type</option>
+                  <option value="saas">SaaS</option>
+                  <option value="cold-email-agency">Cold Email Agency</option>
+                  <option value="lead-gen-service">Lead Gen Service</option>
+                  <option value="ecom-brand">E-com Brand</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Industry
-                </label>
-                <input
-                  type="text"
-                  value={onboardingData.industry}
-                  onChange={(e) => setOnboardingData({...onboardingData, industry: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Technology, Healthcare, Finance"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Size
+                  Team Size *
                 </label>
                 <select
-                  value={onboardingData.companySize}
-                  onChange={(e) => setOnboardingData({...onboardingData, companySize: e.target.value})}
+                  value={onboardingData.teamSize}
+                  onChange={(e) => setOnboardingData({...onboardingData, teamSize: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select size</option>
-                  <option value="1-10">1-10 employees</option>
-                  <option value="11-50">11-50 employees</option>
-                  <option value="51-200">51-200 employees</option>
-                  <option value="200+">200+ employees</option>
+                  <option value="">Select team size</option>
+                  <option value="1-10">1-10</option>
+                  <option value="11-25">11-25</option>
+                  <option value="26-100">26-100</option>
+                  <option value="100+">100+</option>
                 </select>
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Website
+                What industry are you in?
               </label>
               <input
-                type="url"
-                value={onboardingData.website}
-                onChange={(e) => setOnboardingData({...onboardingData, website: e.target.value})}
+                type="text"
+                value={onboardingData.industry}
+                onChange={(e) => setOnboardingData({...onboardingData, industry: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://yourcompany.com"
+                placeholder="e.g., Technology, Healthcare, Finance"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Business Name (Primary Tag) *
+              </label>
+              <input
+                type="text"
+                value={onboardingData.businessName}
+                onChange={(e) => setOnboardingData({...onboardingData, businessName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Your company name"
+              />
+              <p className="text-sm text-gray-500 mt-1">This will be auto-applied as a tag across all assets</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Add Custom Tags
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {onboardingData.customTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-2 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a tag"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addTag(e.currentTarget.value);
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="Add a tag"]') as HTMLInputElement;
+                    if (input?.value) {
+                      addTag(input.value);
+                      input.value = '';
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">These tags will propagate across inboxes and domains</p>
             </div>
           </div>
         );
@@ -222,38 +378,216 @@ function OnboardingSuccessContent() {
       case 2:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Domain Preferences</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Domain Setup</h2>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preferred Domains
-              </label>
-              <p className="text-sm text-gray-600 mb-3">
-                Enter the domains you&apos;d like to use for your email addresses (one per line)
-              </p>
-              <textarea
-                value={onboardingData.preferredDomains.join('\n')}
-                onChange={(e) => setOnboardingData({
-                  ...onboardingData, 
-                  preferredDomains: e.target.value.split('\n').filter(d => d.trim())
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={4}
-                placeholder="example.com&#10;yourcompany.org&#10;mydomain.net"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Domain Requirements
-              </label>
-              <textarea
-                value={onboardingData.domainRequirements}
-                onChange={(e) => setOnboardingData({...onboardingData, domainRequirements: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
-                placeholder="Any specific requirements for your domains..."
-              />
+            <div className="space-y-4">
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="domainMethod"
+                    value="buy"
+                    checked={onboardingData.domainMethod === 'buy'}
+                    onChange={(e) => setOnboardingData({...onboardingData, domainMethod: e.target.value as 'buy'})}
+                    className="mr-2"
+                  />
+                  <span className="font-medium">Buy Fresh Domains</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="domainMethod"
+                    value="bring"
+                    checked={onboardingData.domainMethod === 'bring'}
+                    onChange={(e) => setOnboardingData({...onboardingData, domainMethod: e.target.value as 'bring'})}
+                    className="mr-2"
+                  />
+                  <span className="font-medium">Bring Your Own Domains</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="domainMethod"
+                    value="handle"
+                    checked={onboardingData.domainMethod === 'handle'}
+                    onChange={(e) => setOnboardingData({...onboardingData, domainMethod: e.target.value as 'handle'})}
+                    className="mr-2"
+                  />
+                  <span className="font-medium">Let InboxNav Handle It</span>
+                </label>
+              </div>
+
+              {onboardingData.domainMethod === 'buy' && (
+                <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Purchase Domain Credits</span>
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Buy Credits
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      How many domains for this order?
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={onboardingData.domainCount}
+                      onChange={(e) => setOnboardingData({...onboardingData, domainCount: parseInt(e.target.value) || 1})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {onboardingData.domainMethod === 'bring' && (
+                <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Your Domains
+                    </label>
+                    <textarea
+                      value={onboardingData.uploadedDomains}
+                      onChange={(e) => setOnboardingData({...onboardingData, uploadedDomains: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={4}
+                      placeholder="Enter domains separated by commas or new lines"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Domain Host
+                    </label>
+                    <select
+                      value={onboardingData.domainHost}
+                      onChange={(e) => setOnboardingData({...onboardingData, domainHost: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select host</option>
+                      <option value="godaddy">GoDaddy</option>
+                      <option value="namecheap">Namecheap</option>
+                      <option value="cloudflare">Cloudflare</option>
+                      <option value="others">Others</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Domain Hosting Login Method
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="hostingMethod"
+                          value="credentials"
+                          checked={onboardingData.hostingMethod === 'credentials'}
+                          onChange={(e) => setOnboardingData({...onboardingData, hostingMethod: e.target.value as 'credentials'})}
+                          className="mr-2"
+                        />
+                        <span>Credentials</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="hostingMethod"
+                          value="delegate"
+                          checked={onboardingData.hostingMethod === 'delegate'}
+                          onChange={(e) => setOnboardingData({...onboardingData, hostingMethod: e.target.value as 'delegate'})}
+                          className="mr-2"
+                        />
+                        <span>Delegate Access</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="hostingMethod"
+                          value="dns"
+                          checked={onboardingData.hostingMethod === 'dns'}
+                          onChange={(e) => setOnboardingData({...onboardingData, hostingMethod: e.target.value as 'dns'})}
+                          className="mr-2"
+                        />
+                        <span>DNS Only</span>
+                      </label>
+                    </div>
+                  </div>
+                  {onboardingData.hostingMethod === 'credentials' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Username/Email
+                        </label>
+                        <input
+                          type="text"
+                          value={onboardingData.hostingUsername}
+                          onChange={(e) => setOnboardingData({...onboardingData, hostingUsername: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          value={onboardingData.hostingPassword}
+                          onChange={(e) => setOnboardingData({...onboardingData, hostingPassword: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {onboardingData.hostingMethod === 'delegate' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Provide Invite Email or Access Token
+                      </label>
+                      <input
+                        type="text"
+                        value={onboardingData.hostingToken}
+                        onChange={(e) => setOnboardingData({...onboardingData, hostingToken: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {onboardingData.domainMethod === 'handle' && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-blue-800">
+                    We will purchase and set up domains on your behalf based on inbox configuration.
+                  </p>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Add notes or specific requests about domains
+                    </label>
+                    <textarea
+                      value={onboardingData.domainNotes}
+                      onChange={(e) => setOnboardingData({...onboardingData, domainNotes: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Any specific requirements or preferences..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Domain Forwarding URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={onboardingData.domainForwardingUrl}
+                  onChange={(e) => setOnboardingData({...onboardingData, domainForwardingUrl: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://your-landing-page.com"
+                />
+                <p className="text-sm text-yellow-600 mt-1">
+                  ⚠️ Future versions will implement confirmation modal if URL is empty
+                </p>
+              </div>
             </div>
           </div>
         );
@@ -261,33 +595,155 @@ function OnboardingSuccessContent() {
       case 3:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Persona Setup</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Inbox & Persona Setup</h2>
             
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">Email Personas</h3>
-              <p className="text-sm text-blue-800">
-                We&apos;ll create professional email personas for your business. You can add more later.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How many personas per domain?
+                </label>
+                <select
+                  value={onboardingData.personasPerDomain}
+                  onChange={(e) => setOnboardingData({...onboardingData, personasPerDomain: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Persona Format
+                </label>
+                <input
+                  type="text"
+                  value={onboardingData.personaFormat}
+                  onChange={(e) => setOnboardingData({...onboardingData, personaFormat: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., first.last"
+                />
+              </div>
             </div>
-            
+
             <div className="space-y-4">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-2">Default Personas</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Support Agent - Handles customer inquiries</span>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">Personas (Max 3)</h3>
+                {onboardingData.personas.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={addPersona}
+                    className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Persona
+                  </button>
+                )}
+              </div>
+
+              {onboardingData.personas.map((persona, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-gray-900">Persona {index + 1}</h4>
+                    {onboardingData.personas.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removePersona(index)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Sales Executive - Manages sales leads</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span>Marketing Specialist - Runs campaigns</span>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={persona.firstName}
+                        onChange={(e) => updatePersona(index, 'firstName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="John"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={persona.lastName}
+                        onChange={(e) => updatePersona(index, 'lastName', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Smith"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Role/Designation
+                      </label>
+                      <input
+                        type="text"
+                        value={persona.role}
+                        onChange={(e) => updatePersona(index, 'role', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Sales Manager"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tag this persona with...
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., sales, enterprise, b2b"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            const value = e.currentTarget.value.trim();
+                            if (value) {
+                              const updatedPersonas = [...onboardingData.personas];
+                              updatedPersonas[index].tags = [...updatedPersonas[index].tags, value];
+                              setOnboardingData({...onboardingData, personas: updatedPersonas});
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                      {persona.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {persona.tags.map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-800"
+                            >
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedPersonas = [...onboardingData.personas];
+                                  updatedPersonas[index].tags = updatedPersonas[index].tags.filter((_, i) => i !== tagIndex);
+                                  setOnboardingData({...onboardingData, personas: updatedPersonas});
+                                }}
+                                className="ml-1 text-gray-600 hover:text-gray-800"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         );
@@ -299,27 +755,99 @@ function OnboardingSuccessContent() {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Service Provider
+                Which platform are you using to send cold emails? *
               </label>
               <select
-                value={onboardingData.espProvider}
-                onChange={(e) => setOnboardingData({...onboardingData, espProvider: e.target.value})}
+                value={onboardingData.espPlatform}
+                onChange={(e) => setOnboardingData({...onboardingData, espPlatform: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Select provider</option>
-                <option value="gmail">Gmail</option>
-                <option value="outlook">Outlook</option>
-                <option value="yahoo">Yahoo Mail</option>
-                <option value="custom-smtp">Custom SMTP</option>
+                <option value="">Select platform</option>
+                <option value="smartlead">Smartlead</option>
+                <option value="instantly">Instantly</option>
+                <option value="mailreach">Mailreach</option>
+                <option value="lemwarm">Lemwarm</option>
+                <option value="other">Other</option>
               </select>
             </div>
-            
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Login Email *
+                </label>
+                <input
+                  type="email"
+                  value={onboardingData.espLoginEmail}
+                  onChange={(e) => setOnboardingData({...onboardingData, espLoginEmail: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="your-email@company.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password *
+                </label>
+                <input
+                  type="password"
+                  value={onboardingData.espPassword}
+                  onChange={(e) => setOnboardingData({...onboardingData, espPassword: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Your password"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Workspace Name or Label
+              </label>
+              <input
+                type="text"
+                value={onboardingData.espWorkspaceName}
+                onChange={(e) => setOnboardingData({...onboardingData, espWorkspaceName: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="My Workspace"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                API Key
+              </label>
+              <input
+                type="password"
+                value={onboardingData.espApiKey}
+                onChange={(e) => setOnboardingData({...onboardingData, espApiKey: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Your API key (if required)"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={onboardingData.espNotes}
+                onChange={(e) => setOnboardingData({...onboardingData, espNotes: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                placeholder="Any additional notes or requirements..."
+              />
+            </div>
+
             <div className="bg-yellow-50 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-900 mb-2">Note</h3>
-              <p className="text-sm text-yellow-800">
-                You can configure your ESP credentials later in the dashboard. 
-                For now, we&apos;ll set up the basic configuration.
-              </p>
+              <div className="flex items-start">
+                <Shield className="w-5 h-5 text-yellow-600 mt-0.5 mr-2" />
+                <div>
+                  <h3 className="font-semibold text-yellow-900 mb-1">Data Security</h3>
+                  <p className="text-sm text-yellow-800">
+                    All credentials are securely saved and encrypted. Some ESPs require login + API, others just login.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -327,42 +855,109 @@ function OnboardingSuccessContent() {
       case 5:
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Final Review</h2>
-            
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Review Your Setup</h3>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Business Name:</span>
-                  <span className="font-medium">{onboardingData.businessName || 'Not specified'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Business Type:</span>
-                  <span className="font-medium">{onboardingData.businessType || 'Not specified'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Domains:</span>
-                  <span className="font-medium">{onboardingData.preferredDomains.length} configured</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">ESP Provider:</span>
-                  <span className="font-medium">{onboardingData.espProvider || 'Not specified'}</span>
-                </div>
-              </div>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Final Notes & Confirmation</h2>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Special Requirements
+                Any final notes or custom requests?
               </label>
               <textarea
-                value={onboardingData.specialRequirements}
-                onChange={(e) => setOnboardingData({...onboardingData, specialRequirements: e.target.value})}
+                value={onboardingData.finalNotes}
+                onChange={(e) => setOnboardingData({...onboardingData, finalNotes: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
-                placeholder="Any special requirements or notes..."
+                rows={4}
+                placeholder="Any special requirements, custom requests, or additional information..."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload brand assets, logos, or reference material
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600 mb-2">Drag and drop files here, or click to select</p>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  id="file-upload"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setOnboardingData({
+                        ...onboardingData,
+                        uploadedFiles: Array.from(e.target.files)
+                      });
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Choose Files
+                </label>
+              </div>
+              {onboardingData.uploadedFiles.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Uploaded files:</p>
+                  <ul className="text-sm text-gray-600">
+                    {onboardingData.uploadedFiles.map((file, index) => (
+                      <li key={index}>• {file.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Review Section */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Your Setup</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-gray-900">Business Summary</h4>
+                  <p className="text-sm text-gray-600">
+                    {onboardingData.businessType} • {onboardingData.teamSize} • {onboardingData.industry}
+                  </p>
+                  <p className="text-sm text-gray-600">Primary Tag: {onboardingData.businessName}</p>
+                  {onboardingData.customTags.length > 0 && (
+                    <p className="text-sm text-gray-600">Custom Tags: {onboardingData.customTags.join(', ')}</p>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900">Domain Setup</h4>
+                  <p className="text-sm text-gray-600">
+                    Method: {onboardingData.domainMethod === 'buy' ? 'Buy Fresh Domains' : 
+                            onboardingData.domainMethod === 'bring' ? 'Bring Your Own Domains' : 
+                            'Let InboxNav Handle It'}
+                  </p>
+                  {onboardingData.domainMethod === 'buy' && (
+                    <p className="text-sm text-gray-600">Domains: {onboardingData.domainCount}</p>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900">Persona Details</h4>
+                  <p className="text-sm text-gray-600">
+                    {onboardingData.personasPerDomain} persona(s) per domain
+                  </p>
+                  {onboardingData.personas.map((persona, index) => (
+                    <p key={index} className="text-sm text-gray-600">
+                      • {persona.firstName} {persona.lastName} {persona.role && `(${persona.role})`}
+                    </p>
+                  ))}
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-gray-900">ESP Overview</h4>
+                  <p className="text-sm text-gray-600">
+                    Platform: {onboardingData.espPlatform} • Workspace: {onboardingData.espWorkspaceName}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -397,22 +992,15 @@ function OnboardingSuccessContent() {
               return (
                 <div key={step.id} className="flex items-center">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isCompleted 
-                      ? 'bg-green-500 text-white' 
-                      : isActive 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-200 text-gray-600'
+                    isActive ? 'bg-blue-600 text-white' :
+                    isCompleted ? 'bg-green-600 text-white' :
+                    'bg-gray-200 text-gray-600'
                   }`}>
-                    {isCompleted ? (
-                      <CheckCircle className="w-5 h-5" />
-                    ) : (
-                      <Icon className="w-5 h-5" />
-                    )}
+                    {isCompleted ? <CheckCircle className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
                   </div>
-                  
                   {index < steps.length - 1 && (
                     <div className={`w-16 h-1 mx-2 ${
-                      isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                      isCompleted ? 'bg-green-600' : 'bg-gray-200'
                     }`} />
                   )}
                 </div>
@@ -426,6 +1014,9 @@ function OnboardingSuccessContent() {
             </h1>
             <p className="text-gray-600">
               {steps[currentStep].description}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Step {currentStep + 1} of {steps.length}
             </p>
           </div>
         </div>
@@ -448,7 +1039,7 @@ function OnboardingSuccessContent() {
               onClick={handleNext}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
             >
-              <span>{currentStep === steps.length - 1 ? 'Complete Setup' : 'Next'}</span>
+              <span>{currentStep === steps.length - 1 ? 'Submit Onboarding Form' : 'Next'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

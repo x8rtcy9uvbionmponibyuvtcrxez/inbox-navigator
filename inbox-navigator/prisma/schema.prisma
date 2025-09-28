@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // User Management
@@ -283,7 +283,7 @@ model OnboardingData {
   website           String?
   
   // Domain Preferences
-  preferredDomains  String[] @map("preferred_domains")
+  preferredDomains  String? @map("preferred_domains") // JSON string for SQLite
   domainRequirements String? @map("domain_requirements")
   
   // Persona Setup
