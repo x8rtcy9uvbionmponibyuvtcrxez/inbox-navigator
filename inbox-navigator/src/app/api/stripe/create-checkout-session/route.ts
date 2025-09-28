@@ -3,6 +3,10 @@ import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Stripe Product and Price IDs
+const STRIPE_PRODUCT_ID = 'prod_T8Wg4WOdnZMvCq';
+const STRIPE_PRICE_ID = 'price_1SCFcnBTWWHTKTJvdwKiINPy';
+
 export async function POST(request: NextRequest) {
   try {
     const { quantity, customerEmail, workspaceId, workspaceName } = await request.json();
@@ -37,18 +41,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: `Inbox Management - ${quantity} Inbox${quantity > 1 ? 'es' : ''}`,
-              description: `Professional inbox management for ${quantity} email inbox${quantity > 1 ? 'es' : ''}`,
-              metadata: {
-                workspace_id: workspaceId || 'unknown',
-                workspace_name: workspaceName || 'Unknown Workspace',
-              },
-            },
-            unit_amount: unitAmount,
-          },
+          price: STRIPE_PRICE_ID,
           quantity: quantity,
         },
       ],
@@ -61,6 +54,8 @@ export async function POST(request: NextRequest) {
         workspace_name: workspaceName || 'Unknown Workspace',
         quantity: quantity.toString(),
         type: 'inbox_purchase',
+        product_id: STRIPE_PRODUCT_ID,
+        price_id: STRIPE_PRICE_ID,
       },
       allow_promotion_codes: true,
       billing_address_collection: 'required',
