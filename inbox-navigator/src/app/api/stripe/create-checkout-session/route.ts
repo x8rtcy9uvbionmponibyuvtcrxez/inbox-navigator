@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
     const totalAmount = quantity * unitAmount;
 
     // Create Stripe checkout session
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`;
+    
+    console.log('Success URL:', successUrl);
+    console.log('Cancel URL:', cancelUrl);
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -47,8 +53,8 @@ export async function POST(request: NextRequest) {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       customer_email: customerEmail,
       metadata: {
         workspace_id: workspaceId || 'unknown',
@@ -69,6 +75,8 @@ export async function POST(request: NextRequest) {
     console.error('Error creating checkout session:', error);
     console.error('Stripe key exists:', !!process.env.STRIPE_SECRET_KEY);
     console.error('Stripe key length:', process.env.STRIPE_SECRET_KEY?.length);
+    console.error('App URL:', process.env.NEXT_PUBLIC_APP_URL);
+    console.error('App URL exists:', !!process.env.NEXT_PUBLIC_APP_URL);
     return NextResponse.json(
       { error: 'Failed to create checkout session', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
