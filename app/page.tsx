@@ -19,7 +19,7 @@ export default function DashboardPage() {
   // Redirect to sign-in if not authenticated
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/auth/signin');
+      router.replace('/auth/signin');
     }
   }, [user, loading, router]);
 
@@ -32,9 +32,13 @@ export default function DashboardPage() {
     );
   }
 
-  // Don't render if not authenticated
+  // Show loading while redirecting if not authenticated
   if (!user) {
-    return null;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   const handleNewInbox = () => {

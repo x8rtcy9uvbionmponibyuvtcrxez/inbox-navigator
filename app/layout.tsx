@@ -5,13 +5,11 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
-import { TopNav } from "@/components/top-nav"
-import { SidebarNav } from "@/components/sidebar-nav"
-import { Providers } from "@/components/providers"
+import { ConditionalLayout } from "@/components/conditional-layout"
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
+  title: "Inbox Navigator",
+  description: "Professional email management platform",
   generator: "v0.app",
 }
 
@@ -20,24 +18,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  console.log("[v0] RootLayout rendered: providing TopNav + SidebarNav globally")
-
   return (
     <html lang="en" className="dark antialiased">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Providers>
-          <div className="min-h-dvh bg-background text-foreground">
-            <TopNav />
-            <div className="mx-auto max-w-[1400px] px-4 md:px-6">
-              <div className="flex gap-6 py-6">
-                <SidebarNav />
-                <main className="flex-1 min-w-0">
-                  <Suspense fallback={null}>{children}</Suspense>
-                </main>
-              </div>
-            </div>
-          </div>
-        </Providers>
+        <ConditionalLayout>
+          <Suspense fallback={null}>{children}</Suspense>
+        </ConditionalLayout>
         <Analytics />
       </body>
     </html>
