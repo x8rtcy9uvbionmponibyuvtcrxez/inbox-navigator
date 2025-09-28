@@ -64,12 +64,16 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setLoading(true)
     setError(null)
 
+    console.log('Fetching order details:', { sessionId, orderId, user: user?.email })
+
     try {
       // Try to fetch order by session ID first, then by order ID
       let response
       if (sessionId) {
+        console.log('Fetching order by session ID:', sessionId)
         response = await fetch(`/api/orders/by-session/${sessionId}`)
       } else if (orderId) {
+        console.log('Fetching order by order ID:', orderId)
         response = await fetch(`/api/orders/${orderId}`)
       }
 
@@ -77,21 +81,27 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         // If order doesn't exist and we have a session ID, create a test order
         if (sessionId && user) {
           console.log('Order not found, creating test order for onboarding...')
-          const createResponse = await fetch('/api/test/create-onboarding-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId,
-              customerEmail: user.email,
-              customerName: user.name,
-              quantity: 2
+          try {
+            const createResponse = await fetch('/api/test/create-onboarding-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId,
+                customerEmail: user.email,
+                customerName: user.name,
+                quantity: 2
+              })
             })
-          })
 
-          if (createResponse.ok) {
-            const createData = await createResponse.json()
-            setOrder(createData.order)
-            return
+            if (createResponse.ok) {
+              const createData = await createResponse.json()
+              setOrder(createData.order)
+              return
+            } else {
+              console.error('Failed to create test order:', await createResponse.text())
+            }
+          } catch (createError) {
+            console.error('Error creating test order:', createError)
           }
         }
         throw new Error('Failed to fetch order details')
@@ -102,6 +112,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     } catch (err) {
       console.error('Error fetching order:', err)
       setError(err instanceof Error ? err.message : 'Failed to load order details')
+      
+      // If we have a session ID but failed to create an order, show a more helpful error
+      if (sessionId && user) {
+        setError('Unable to create order for onboarding. Please try again or contact support.')
+      }
     } finally {
       setLoading(false)
     }
