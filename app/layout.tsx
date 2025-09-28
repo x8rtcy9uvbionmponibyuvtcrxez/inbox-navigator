@@ -5,7 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
-import { ConditionalLayout } from "@/components/conditional-layout"
+import { ConditionalLayout } from "@/src/components/conditional-layout"
 
 export const metadata: Metadata = {
   title: "Inbox Navigator",
