@@ -74,6 +74,26 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       }
 
       if (!response?.ok) {
+        // If order doesn't exist and we have a session ID, create a test order
+        if (sessionId && user) {
+          console.log('Order not found, creating test order for onboarding...')
+          const createResponse = await fetch('/api/test/create-onboarding-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
+              customerEmail: user.email,
+              customerName: user.name,
+              quantity: 2
+            })
+          })
+
+          if (createResponse.ok) {
+            const createData = await createResponse.json()
+            setOrder(createData.order)
+            return
+          }
+        }
         throw new Error('Failed to fetch order details')
       }
 
