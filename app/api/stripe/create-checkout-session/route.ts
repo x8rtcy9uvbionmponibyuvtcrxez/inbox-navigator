@@ -31,8 +31,9 @@ export async function POST(request: NextRequest) {
     const totalAmount = quantity * unitAmount;
 
     // Create Stripe checkout session
-    const successUrl = `http://localhost:3000/onboarding/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `http://localhost:3000/dashboard/billing`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://inbox-navigator.vercel.app';
+    const successUrl = `${baseUrl}/onboarding/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/dashboard/billing`;
     
     console.log('Success URL:', successUrl);
     console.log('Cancel URL:', cancelUrl);
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
           quantity: quantity,
         },
       ],
-      mode: 'subscription',
+      mode: 'payment', // Changed from 'subscription' to 'payment' for one-time purchases
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail,
