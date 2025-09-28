@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { TopNav } from "@/components/top-nav"
 import { SidebarNav } from "@/components/sidebar-nav"
+import { AuthProvider } from "@/contexts/AuthContext"
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -24,17 +25,19 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark antialiased">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <div className="min-h-dvh bg-background text-foreground">
-          <TopNav />
-          <div className="mx-auto max-w-[1400px] px-4 md:px-6">
-            <div className="flex gap-6 py-6">
-              <SidebarNav />
-              <main className="flex-1 min-w-0">
-                <Suspense fallback={null}>{children}</Suspense>
-              </main>
+        <AuthProvider>
+          <div className="min-h-dvh bg-background text-foreground">
+            <TopNav />
+            <div className="mx-auto max-w-[1400px] px-4 md:px-6">
+              <div className="flex gap-6 py-6">
+                <SidebarNav />
+                <main className="flex-1 min-w-0">
+                  <Suspense fallback={null}>{children}</Suspense>
+                </main>
+              </div>
             </div>
           </div>
-        </div>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>

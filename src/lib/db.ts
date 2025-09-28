@@ -106,7 +106,10 @@ export const createClient = async (data: {
   workspaceId: string
 }) => {
   return await prisma.client.create({
-    data,
+    data: {
+      ...data,
+      productsBought: '[]', // Default empty JSON array
+    },
     include: {
       workspace: true
     }
@@ -224,7 +227,10 @@ export const createInbox = async (data: {
   subscriptionId?: string
 }) => {
   return await prisma.inbox.create({
-    data,
+    data: {
+      ...data,
+      tags: '[]', // Default empty JSON array
+    },
     include: {
       domain: true,
       client: true,
@@ -260,7 +266,6 @@ export const getOrdersByWorkspace = async (workspaceId: string, filters?: {
     where,
     include: {
       client: true,
-      createdBy: true,
       subscription: true
     },
     orderBy: { createdAt: 'desc' }
@@ -280,12 +285,9 @@ export const getSubscriptionsByWorkspace = async (workspaceId: string, filters?:
   return await prisma.subscription.findMany({
     where,
     include: {
-      _count: {
-        select: {
-          inboxes: true,
-          orders: true
-        }
-      }
+      order: true,
+      client: true,
+      workspace: true
     },
     orderBy: { createdAt: 'desc' }
   })
@@ -314,10 +316,10 @@ export const getRequestsByWorkspace = async (workspaceId: string, filters?: {
   return await prisma.request.findMany({
     where,
     include: {
-      createdBy: true,
-      assignedTo: true
+      submitter: true,
+      assignee: true
     },
-    orderBy: { submittedOn: 'desc' }
+    orderBy: { createdAt: 'desc' }
   })
 }
 
@@ -327,7 +329,7 @@ export const getDashboardStats = async (workspaceId: string) => {
     prisma.domain.count({
       where: { 
         workspaceId,
-        status: 'ACTIVE'
+        status: 'LIVE'
       }
     }),
     prisma.inbox.count({
@@ -363,16 +365,18 @@ export const getDashboardStats = async (workspaceId: string) => {
 
 // Bulk operations
 export const bulkUpdateDomains = async (domainIds: string[], updates: Partial<Domain>) => {
+  const { id, workspaceId, clientId, dnsRecords, createdAt, updatedAt, ...updateData } = updates
   return await prisma.domain.updateMany({
     where: { id: { in: domainIds } },
-    data: updates
+    data: updateData
   })
 }
 
 export const bulkUpdateInboxes = async (inboxIds: string[], updates: Partial<Inbox>) => {
+  const { id, workspaceId, clientId, domainId, createdAt, updatedAt, ...updateData } = updates
   return await prisma.inbox.updateMany({
     where: { id: { in: inboxIds } },
-    data: updates
+    data: updateData
   })
 }
 

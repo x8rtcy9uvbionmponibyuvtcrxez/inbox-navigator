@@ -5,12 +5,6 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  },
-  // Disable prepared statements to avoid connection pool issues
   log: ['query', 'info', 'warn', 'error'],
 })
 
