@@ -18,6 +18,9 @@ export default function OnboardingSuccessPage() {
     const sessionId = urlParams.get('session_id')
     
     if (sessionId) {
+      // Simulate webhook to create order
+      simulateWebhook(sessionId)
+      
       // Redirect to onboarding with the session ID
       const timer = setInterval(() => {
         setCountdown((prev) => {
@@ -45,6 +48,32 @@ export default function OnboardingSuccessPage() {
       return () => clearInterval(timer)
     }
   }, [router])
+
+  const simulateWebhook = async (sessionId: string) => {
+    try {
+      console.log('Simulating webhook for session:', sessionId)
+      const response = await fetch('/api/dev/simulate-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          customerEmail: 'test@example.com', // You can get this from user context
+          customerName: 'Test User',
+          totalAmount: 600, // $6.00 for 2 inboxes
+          quantity: 2
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Webhook simulation successful:', data.message)
+      } else {
+        console.error('Webhook simulation failed:', await response.text())
+      }
+    } catch (error) {
+      console.error('Error simulating webhook:', error)
+    }
+  }
 
   const handleGoToOnboarding = () => {
     const urlParams = new URLSearchParams(window.location.search)
