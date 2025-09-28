@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Mail, Plus, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import PaymentGate from '@/components/payment/PaymentGate';
+// Removed old DashboardLayout import
+// Removed old PaymentGate import
 
 export default function InboxesPage() {
   const [inboxes] = useState([
@@ -82,8 +82,7 @@ export default function InboxesPage() {
   };
 
   return (
-    <DashboardLayout title="Inboxes" description="Manage your email inboxes and personas">
-      <div className="p-6">
+    <div className="p-6">
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -92,17 +91,10 @@ export default function InboxesPage() {
                 <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
                   <span>DEMO DATA</span>
                 </div>
-                <PaymentGate
-                  feature="inbox creation"
-                  subscriptionStatus="free"
-                  workspaceId="demo_workspace_123"
-                  workspaceName="My Workspace"
-                >
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Create New Inbox</span>
-                  </button>
-                </PaymentGate>
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Inbox</span>
+                </button>
               </div>
             </div>
           </div>
@@ -136,7 +128,6 @@ export default function InboxesPage() {
             ))}
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }

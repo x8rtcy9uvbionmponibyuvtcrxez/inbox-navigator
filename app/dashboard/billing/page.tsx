@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { CreditCard, Crown, CheckCircle, Clock, AlertTriangle, Zap } from 'lucide-react';
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import PaymentGate from '@/components/payment/PaymentGate';
+// Removed old DashboardLayout import
+// Removed old PaymentGate import
 
 export default function BillingPage() {
   const [currentPlan] = useState({
@@ -91,8 +91,7 @@ export default function BillingPage() {
   };
 
   return (
-    <DashboardLayout title="Billing" description="Manage your subscription and billing information">
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
         {/* Current Plan */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -142,17 +141,10 @@ export default function BillingPage() {
                   </li>
                 ))}
               </ul>
-              <PaymentGate
-                feature="pro subscription"
-                subscriptionStatus="free"
-                workspaceId="demo_workspace_123"
-                workspaceName="My Workspace"
-              >
-                <button className="w-full mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2">
-                  <Crown className="w-4 h-4" />
-                  <span>Upgrade to Pro</span>
-                </button>
-              </PaymentGate>
+              <button className="w-full mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2">
+                <Crown className="w-4 h-4" />
+                <span>Upgrade to Pro</span>
+              </button>
             </div>
           </div>
         </div>
@@ -191,7 +183,6 @@ export default function BillingPage() {
             ))}
           </div>
         </div>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }

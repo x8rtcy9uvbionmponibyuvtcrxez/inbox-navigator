@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
     const totalAmount = quantity * unitAmount;
 
     // Create Stripe checkout session
-    const successUrl = `https://inbox-navigator.vercel.app/onboarding/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `https://inbox-navigator.vercel.app/dashboard/billing`;
+    const successUrl = `http://localhost:3000/onboarding/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `http://localhost:3000/dashboard/billing`;
     
     console.log('Success URL:', successUrl);
     console.log('Cancel URL:', cancelUrl);
