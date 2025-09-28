@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -103,7 +103,7 @@ model Client {
   lifetimeInboxesCount     Int      @default(0) @map("lifetime_inboxes_count")
   totalGsuite              Int      @default(0) @map("total_gsuite")
   totalOutlook             Int      @default(0) @map("total_outlook")
-  productsBought           String   @map("products_bought") // JSON string
+  productsBought           String[] @map("products_bought")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
@@ -135,8 +135,8 @@ model Order {
   domainCount           Int         @map("domain_count")
   productId             String      @map("product_id")
   priceId               String      @map("price_id")
-  productsBought        String      @map("products_bought") // JSON string
-  typesOfInboxes        String      @map("types_of_inboxes") // JSON string
+  productsBought        String[]    @map("products_bought")
+  typesOfInboxes        InboxType[] @map("types_of_inboxes")
   orderDate             DateTime    @default(now()) @map("order_date")
   fulfilledDate         DateTime?   @map("fulfilled_date")
   createdAt             DateTime    @default(now()) @map("created_at")
@@ -160,7 +160,7 @@ model Subscription {
   status                SubscriptionStatus @default(ACTIVE)
   plan                  SubscriptionPlan  @default(BASIC)
   billingPeriod         BillingPeriod     @default(MONTHLY)
-  amount                Float
+  amount                Decimal     @db.Decimal(10, 2)
   startedAt             DateTime          @map("started_at")
   cancelsAt             DateTime?         @map("cancels_at")
   createdAt             DateTime          @default(now()) @map("created_at")
@@ -217,7 +217,7 @@ model Inbox {
   stripeSubscriptionId String?    @map("stripe_subscription_id")
   personaId           String?     @map("persona_id")
   inboxRecordId       String?     @map("inbox_record_id")
-  tags                String   // JSON string
+  tags                String[]
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
@@ -241,7 +241,7 @@ model Persona {
   lastName      String   @map("last_name")
   profilePhoto  String?  @map("profile_photo")
   role          String?
-  tags          String   // JSON string
+  tags          String[]
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -324,7 +324,7 @@ model OnboardingData {
   website           String?
   
   // Domain Preferences
-  preferredDomains  String   @map("preferred_domains") // JSON string
+  preferredDomains  String[] @map("preferred_domains")
   domainRequirements String? @map("domain_requirements")
   
   // Persona Setup

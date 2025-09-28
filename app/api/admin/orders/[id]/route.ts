@@ -16,7 +16,7 @@ export async function PATCH(
       );
     }
 
-    const validStatuses = ['PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'FAILED'];
+    const validStatuses = ['PENDING', 'DELIVERED', 'CANCELLED'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status' },
@@ -26,9 +26,9 @@ export async function PATCH(
 
     const updateData: Record<string, unknown> = { status };
     
-    // If completing the order, set fulfilledAt
-    if (status === 'COMPLETED') {
-      updateData.fulfilledAt = new Date();
+    // If delivering the order, set fulfilledDate
+    if (status === 'DELIVERED') {
+      updateData.fulfilledDate = new Date();
     }
 
     const order = await prisma.order.update({

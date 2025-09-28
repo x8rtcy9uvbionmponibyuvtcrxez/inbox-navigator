@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
+import { InboxType } from '@prisma/client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -106,7 +107,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           name: session.customer_details?.name || workspace.primaryUser.fullName || 'Unknown',
           email: session.customer_email || workspace.primaryUser.email,
           workspaceId: workspace_id,
-          productsBought: '[]', // Empty JSON array as string
+          productsBought: [] as string[], // Empty array
         },
       });
     }
@@ -134,8 +135,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         stripeCustomerId: customer?.id as string,
         productId: 'inbox_basic',
         priceId: 'price_inbox_basic',
-        productsBought: '["inbox_basic"]',
-        typesOfInboxes: '["GSUITE"]',
+        productsBought: ['inbox_basic'] as string[],
+        typesOfInboxes: [InboxType.GSUITE],
       },
     });
 
@@ -155,7 +156,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         orderId: order.id,
         stepCompleted: 0,
         isCompleted: false,
-        preferredDomains: '[]', // Empty JSON array as string
+        preferredDomains: [] as string[], // Empty array
       },
     });
 

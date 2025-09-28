@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, InboxType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -55,7 +55,7 @@ async function main() {
         email: 'contact@techflow-solutions.com',
         company: 'TechFlow Solutions Inc.',
         workspaceId: workspace.id,
-        productsBought: '[]',
+        productsBought: [] as string[],
       },
     }),
     prisma.client.upsert({
@@ -67,7 +67,7 @@ async function main() {
         email: 'hello@innovate-digital.co',
         company: 'Innovate Digital Agency',
         workspaceId: workspace.id,
-        productsBought: '[]',
+        productsBought: [] as string[],
       },
     }),
   ])
@@ -118,8 +118,8 @@ async function main() {
       workspaceId: workspace.id,
       productId: 'inbox_basic',
       priceId: 'price_inbox_basic',
-      productsBought: '["inbox_basic"]',
-      typesOfInboxes: '["GSUITE"]',
+      productsBought: ['inbox_basic'] as string[],
+      typesOfInboxes: [InboxType.GSUITE],
     },
   })
 
@@ -156,7 +156,7 @@ async function main() {
         workspaceId: workspace.id,
         subscriptionId: subscription.id,
         stripeSubscriptionId: 'sub_stripe_123',
-        tags: '[]',
+        tags: [] as string[],
       },
     }),
     prisma.inbox.upsert({
@@ -170,7 +170,7 @@ async function main() {
         domainId: domains[1].id,
         clientId: clients[1].id,
         workspaceId: workspace.id,
-        tags: '[]',
+        tags: [] as string[],
       },
     }),
   ])
@@ -190,7 +190,7 @@ async function main() {
         clientId: clients[0].id,
         inboxId: inboxes[0].id,
         userId: user.id,
-        tags: '[]',
+        tags: [] as string[],
       },
     }),
     prisma.persona.upsert({
@@ -206,7 +206,7 @@ async function main() {
         clientId: clients[1].id,
         inboxId: inboxes[1].id,
         userId: user.id,
-        tags: '[]',
+        tags: [] as string[],
       },
     }),
   ])

@@ -108,7 +108,7 @@ export const createClient = async (data: {
   return await prisma.client.create({
     data: {
       ...data,
-      productsBought: '[]', // Default empty JSON array
+      productsBought: [] as string[], // Default empty array
     },
     include: {
       workspace: true
@@ -229,7 +229,7 @@ export const createInbox = async (data: {
   return await prisma.inbox.create({
     data: {
       ...data,
-      tags: '[]', // Default empty JSON array
+      tags: [] as string[], // Default empty array
     },
     include: {
       domain: true,

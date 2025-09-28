@@ -15,15 +15,17 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
+            email: true,
           },
         },
+        onboardingData: true,
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return NextResponse.json({ orders });
+    return NextResponse.json(orders);
 
   } catch (error) {
     console.error('Error fetching orders:', error);
