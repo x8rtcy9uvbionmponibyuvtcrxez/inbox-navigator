@@ -67,8 +67,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating checkout session:', error);
+    console.error('Stripe key exists:', !!process.env.STRIPE_SECRET_KEY);
+    console.error('Stripe key length:', process.env.STRIPE_SECRET_KEY?.length);
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: 'Failed to create checkout session', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
