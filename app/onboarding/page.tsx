@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,8 @@ import { Separator } from "@/components/ui/separator"
 import { OnboardingProgress } from "@/components/onboarding/progress"
 import { TagInput } from "@/components/onboarding/tag-input"
 import { PersonaForm, type Persona } from "@/components/onboarding/persona-form"
+import { useAuth } from "@/contexts/AuthContext"
+import { useOnboarding } from "@/contexts/OnboardingContext"
 
 type DomainChoice = "buy" | "byod" | "managed"
 
@@ -65,7 +68,12 @@ type WizardData = {
 const TOTAL_STEPS = 5
 
 export default function OnboardingPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  const { order, loading: orderLoading, error: orderError, submitOnboarding } = useOnboarding()
   const [step, setStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [data, setData] = useState<WizardData>({
     profile: {
@@ -169,10 +177,76 @@ export default function OnboardingPage() {
     })
   }
 
-  function handleComplete() {
-    // In a real app, submit to an API route or server action.
-    console.log("[v0] Onboarding complete payload:", data)
-    alert("Setup complete! We’ll start configuring your workspace.")
+  async function handleComplete() {
+    if (!order) {
+      setSubmitError("No order found. Please ensure you accessed this page from a valid order.")
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      // Transform data to match the expected format
+      const transformedData = {
+        businessProfile: data.profile,
+        domainSetup: data.domain,
+        espIntegration: data.esp,
+        personas: data.personas,
+        customTags: data.review.customRequests ? [data.review.customRequests] : []
+      }
+
+      console.log("[v0] Onboarding complete payload:", transformedData)
+
+      const result = await submitOnboarding(transformedData)
+      
+      if (result.success) {
+        // Redirect to success page
+        router.push('/onboarding/success')
+      } else {
+        setSubmitError(result.error || "Failed to submit onboarding data")
+      }
+    } catch (error) {
+      console.error("Error submitting onboarding:", error)
+      setSubmitError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Show loading state while checking authentication and order
+  if (authLoading || orderLoading) {
+    return (
+      <main className="mx-auto max-w-4xl p-6 md:p-10">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading onboarding...</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Show error if no order found
+  if (orderError || !order) {
+    return (
+      <main className="mx-auto max-w-4xl p-6 md:p-10">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold text-red-800 mb-2">Order Not Found</h2>
+              <p className="text-red-600 mb-4">
+                {orderError || "No order found. Please ensure you accessed this page from a valid order."}
+              </p>
+              <Button onClick={() => router.push('/')} variant="outline">
+                Return to Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    )
   }
 
   return (
@@ -181,9 +255,23 @@ export default function OnboardingPage() {
         <div>
           <h1 className="text-2xl font-semibold text-balance">Post‑Payment Onboarding</h1>
           <p className="text-sm text-muted-foreground">Help us tailor your email workspace.</p>
+          {order && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Order: {order.orderNumber} | Amount: ${order.totalAmount}
+            </p>
+          )}
         </div>
         <OnboardingProgress step={step} total={TOTAL_STEPS} />
       </div>
+
+      {/* Error Display */}
+      {submitError && (
+        <Card className="border-red-200 bg-red-50 mb-6">
+          <CardContent className="pt-4">
+            <p className="text-red-600 text-sm">{submitError}</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="glass hover-lift">
         <CardHeader className="pb-3">
@@ -704,8 +792,19 @@ export default function OnboardingPage() {
             Continue
           </Button>
         ) : (
-          <Button onClick={handleComplete} className="px-6 py-6 text-base">
-            Complete Setup
+          <Button 
+            onClick={handleComplete} 
+            disabled={isSubmitting || !canContinue}
+            className="px-6 py-6 text-base"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Submitting...
+              </>
+            ) : (
+              "Complete Setup"
+            )}
           </Button>
         )}
       </div>
