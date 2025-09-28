@@ -1,13 +1,50 @@
 'use client';
 
 import { Button } from "@/components/ui/button"
-import { Mail, Globe, ShoppingCart, Users, Plus, LinkIcon, UserPlus } from "lucide-react"
+import { Mail, Globe, ShoppingCart, Users, Plus, Minus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleNewInbox = async () => {
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth/signin');
+    }
+  }, [user, loading, router]);
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
+
+  const handleNewInbox = () => {
+    setShowProductModal(true);
+  };
+
+  const handleProductSelection = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
     try {
       // Create a Stripe checkout session
       const response = await fetch('/api/stripe/create-checkout-session', {
@@ -16,8 +53,8 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          quantity: 1,
-          customerEmail: 'user@example.com', // In a real app, get this from auth context
+          quantity: quantity,
+          customerEmail: user.email,
         }),
       });
 
@@ -33,18 +70,11 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error creating checkout session:', error);
       alert('Failed to start checkout. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleConnectDomain = () => {
-    // For now, redirect to domains page
-    router.push('/domains');
-  };
-
-  const handleInviteMember = () => {
-    // For now, redirect to settings page
-    router.push('/settings');
-  };
   return (
     <>
       {/* Header */}
@@ -62,20 +92,6 @@ export default function DashboardPage() {
               className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Plus className="mr-2 h-4 w-4" /> New Inbox
-            </Button>
-            <Button 
-              onClick={handleConnectDomain}
-              variant="outline" 
-              className="h-9 bg-transparent hover:bg-accent"
-            >
-              <LinkIcon className="mr-2 h-4 w-4" /> Connect Domain
-            </Button>
-            <Button 
-              onClick={handleInviteMember}
-              variant="outline" 
-              className="h-9 bg-transparent hover:bg-accent"
-            >
-              <UserPlus className="mr-2 h-4 w-4" /> Invite Member
             </Button>
           </div>
         </div>
@@ -133,18 +149,94 @@ export default function DashboardPage() {
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <h2 className="text-lg font-semibold mb-4">Welcome to Inbox Navigator</h2>
           <p className="text-muted-foreground mb-4">
-            Your comprehensive email management platform. Get started by creating your first inbox or connecting a domain.
+            Your comprehensive email management platform. Get started by creating your first inbox.
           </p>
           <div className="flex gap-2">
             <Button onClick={handleNewInbox}>
               <Plus className="mr-2 h-4 w-4" /> Create Inbox
             </Button>
-            <Button onClick={handleConnectDomain} variant="outline">
-              <LinkIcon className="mr-2 h-4 w-4" /> Connect Domain
-            </Button>
           </div>
         </div>
       </section>
+
+      {/* Product Selection Modal */}
+      {showProductModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Select Inbox Package</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Number of Inboxes</Label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="text-center"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">Package Details</h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  Each inbox includes:
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Professional email setup</li>
+                  <li>• Domain configuration</li>
+                  <li>• ESP integration (Smartlead, etc.)</li>
+                  <li>• Warmup service</li>
+                  <li>• 24/7 support</li>
+                </ul>
+                <div className="mt-3 pt-3 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total Price:</span>
+                    <span className="text-lg font-bold">${(quantity * 100).toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">${100} per inbox</p>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowProductModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleProductSelection}
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  {isLoading ? 'Processing...' : 'Proceed to Checkout'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </>
   )
 }
