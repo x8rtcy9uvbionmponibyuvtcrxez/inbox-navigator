@@ -14,7 +14,7 @@ export default function ProtectedRoute({
   children, 
   requireWorkspace = true 
 }: ProtectedRouteProps) {
-  const { user, loading, currentWorkspace } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,13 +25,14 @@ export default function ProtectedRoute({
         return;
       }
 
-      if (requireWorkspace && !currentWorkspace) {
-        // User authenticated but no workspace, redirect to auth for workspace setup
+      if (requireWorkspace) {
+        // For now, always redirect to auth for workspace setup
+        // In a real app, you'd check if user has a workspace
         router.push('/auth');
         return;
       }
     }
-  }, [user, loading, currentWorkspace, requireWorkspace, router]);
+  }, [user, loading, requireWorkspace, router]);
 
   if (loading) {
     return (
@@ -48,7 +49,7 @@ export default function ProtectedRoute({
     return null; // Will redirect to auth
   }
 
-  if (requireWorkspace && !currentWorkspace) {
+  if (requireWorkspace) {
     return null; // Will redirect to auth for workspace setup
   }
 

@@ -121,7 +121,7 @@ export const getDomainsByWorkspace = async (workspaceId: string, filters?: {
   clientId?: string
   search?: string
 }) => {
-  const where: any = { workspaceId }
+  const where: Record<string, unknown> = { workspaceId }
   
   if (filters?.status) {
     where.status = filters.status
@@ -180,7 +180,7 @@ export const getInboxesByWorkspace = async (workspaceId: string, filters?: {
   clientId?: string
   search?: string
 }) => {
-  const where: any = { workspaceId }
+  const where: Record<string, unknown> = { workspaceId }
   
   if (filters?.status) {
     where.status = filters.status
@@ -247,7 +247,7 @@ export const getOrdersByWorkspace = async (workspaceId: string, filters?: {
   clientId?: string
   search?: string
 }) => {
-  const where: any = { workspaceId }
+  const where: Record<string, unknown> = { workspaceId }
   
   if (filters?.status) {
     where.status = filters.status
@@ -279,7 +279,7 @@ export const getOrdersByWorkspace = async (workspaceId: string, filters?: {
 export const getSubscriptionsByWorkspace = async (workspaceId: string, filters?: {
   status?: SubscriptionStatus
 }) => {
-  const where: any = { workspaceId }
+  const where: Record<string, unknown> = { workspaceId }
   
   if (filters?.status) {
     where.status = filters.status
@@ -305,7 +305,7 @@ export const getRequestsByWorkspace = async (workspaceId: string, filters?: {
   assignedToId?: string
   type?: string
 }) => {
-  const where: any = { workspaceId }
+  const where: Record<string, unknown> = { workspaceId }
   
   if (filters?.status) {
     where.status = filters.status

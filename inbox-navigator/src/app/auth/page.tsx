@@ -11,21 +11,10 @@ import { Loader2 } from 'lucide-react';
 type AuthMode = 'login' | 'signup' | 'workspace';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<AuthMode>('login');
-  const { user, loading, currentWorkspace } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && user) {
-      if (currentWorkspace) {
-        // User is authenticated and has a workspace, redirect to dashboard
-        router.push('/');
-      } else {
-        // User is authenticated but no workspace, show workspace setup
-        setMode('workspace');
-      }
-    }
-  }, [user, loading, currentWorkspace, router]);
+  console.log('AuthPage state:', { user, loading });
 
   if (loading) {
     return (
@@ -38,26 +27,11 @@ export default function AuthPage() {
     );
   }
 
-  if (user && currentWorkspace) {
-    // User is fully authenticated, redirect to dashboard
-    router.push('/');
-    return null;
-  }
-
+  // Always show workspace setup for now
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {mode === 'login' && (
-          <LoginForm onSwitchToSignup={() => setMode('signup')} />
-        )}
-        
-        {mode === 'signup' && (
-          <SignupForm onSwitchToLogin={() => setMode('login')} />
-        )}
-        
-        {mode === 'workspace' && user && (
-          <WorkspaceSetup />
-        )}
+        <WorkspaceSetup />
       </div>
     </div>
   );

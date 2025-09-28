@@ -40,7 +40,7 @@ export default function WorkspaceSetup() {
         </div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Create Your Workspace</h1>
         <p className="text-muted-foreground">
-          Let's set up your workspace to get started with Inbox Navigator
+          Let&apos;s set up your workspace to get started with Inbox Navigator
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function WorkspaceSetup() {
       </form>
 
       <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-        <h3 className="text-sm font-medium text-foreground mb-2">What's next?</h3>
+        <h3 className="text-sm font-medium text-foreground mb-2">What&apos;s next?</h3>
         <ul className="text-xs text-muted-foreground space-y-1">
           <li>• Add your first domain</li>
           <li>• Create email inboxes</li>

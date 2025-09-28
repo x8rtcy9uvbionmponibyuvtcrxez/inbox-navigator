@@ -37,13 +37,16 @@ model User {
 
 // Workspace Management
 model Workspace {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  ownerId     String   @map("owner_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  description       String?
+  ownerId           String   @map("owner_id")
+  subscriptionStatus String  @default("free") @map("subscription_status") // free, paid, trial
+  stripeCustomerId  String?  @map("stripe_customer_id")
+  stripeSubscriptionId String? @map("stripe_subscription_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
   owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -54,6 +57,7 @@ model Workspace {
   orders   Order[]
   subscriptions Subscription[]
   requests Request[]
+  onboardingData OnboardingData?
 
   @@map("workspaces")
 }
@@ -145,24 +149,37 @@ model Inbox {
 
 // Order Management
 model Order {
-  id          String      @id @default(cuid())
-  orderNumber String      @unique @map("order_number")
-  status      OrderStatus @default(PENDING)
-  inboxCount  Int         @map("inbox_count")
-  domainCount Int         @map("domain_count")
-  totalAmount Decimal     @map("total_amount")
-  clientId    String      @map("client_id")
-  workspaceId String      @map("workspace_id")
-  createdById String      @map("created_by_id")
-  subscriptionId String?  @map("subscription_id")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id                String      @id @default(cuid())
+  orderNumber       String      @unique @map("order_number")
+  status            OrderStatus @default(PENDING)
+  inboxCount        Int         @map("inbox_count")
+  domainCount       Int         @map("domain_count")
+  totalAmount       Decimal     @map("total_amount")
+  clientId          String      @map("client_id")
+  workspaceId       String      @map("workspace_id")
+  createdById       String      @map("created_by_id")
+  subscriptionId    String?     @map("subscription_id")
+  
+  // Stripe Integration
+  stripeSessionId   String?     @unique @map("stripe_session_id")
+  stripePaymentId   String?     @map("stripe_payment_id")
+  customerEmail     String?     @map("customer_email")
+  customerName      String?     @map("customer_name")
+  billingAddress    Json?       @map("billing_address")
+  
+  // Fulfillment
+  fulfilledAt       DateTime?   @map("fulfilled_at")
+  notes             String?
+  
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
 
   // Relations
   client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy    User          @relation("OrderCreator", fields: [createdById], references: [id])
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  onboardingData OnboardingData?
 
   @@map("orders")
 }
@@ -250,6 +267,51 @@ model Request {
   assignedTo User?    @relation("RequestAssignee", fields: [assignedToId], references: [id])
 
   @@map("requests")
+}
+
+// Onboarding Management
+model OnboardingData {
+  id                String   @id @default(cuid())
+  workspaceId       String   @unique @map("workspace_id")
+  orderId           String?  @unique @map("order_id")
+  
+  // Business Profile
+  businessName      String?  @map("business_name")
+  businessType      String?  @map("business_type")
+  industry          String?
+  companySize       String?  @map("company_size")
+  website           String?
+  
+  // Domain Preferences
+  preferredDomains  String[] @map("preferred_domains")
+  domainRequirements String? @map("domain_requirements")
+  
+  // Persona Setup
+  personas          Json?    // Array of persona objects
+  personaCount      Int      @default(0) @map("persona_count")
+  
+  // ESP Integration
+  espProvider       String?  @map("esp_provider")
+  espCredentials    Json?    @map("esp_credentials")
+  espConfigured     Boolean  @default(false) @map("esp_configured")
+  
+  // Additional Notes
+  specialRequirements String? @map("special_requirements")
+  notes             String?
+  
+  // Completion Status
+  stepCompleted     Int      @default(0) @map("step_completed")
+  isCompleted       Boolean  @default(false) @map("is_completed")
+  completedAt       DateTime? @map("completed_at")
+  
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  order     Order?    @relation(fields: [orderId], references: [id])
+
+  @@map("onboarding_data")
 }
 
 // Enums

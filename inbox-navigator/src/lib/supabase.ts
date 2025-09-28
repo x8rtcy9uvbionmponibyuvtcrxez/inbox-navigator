@@ -1,9 +1,16 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!url || !key) {
+    console.error('Missing Supabase environment variables:', { url: !!url, key: !!key })
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createBrowserClient(url, key)
+}
 
 // Database types (will be generated from Prisma)
 export type Database = {
