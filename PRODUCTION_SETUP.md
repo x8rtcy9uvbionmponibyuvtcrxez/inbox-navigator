@@ -34,6 +34,17 @@ JWT_SECRET=[GENERATE-A-SECURE-JWT-SECRET]
 ENCRYPTION_KEY=[GENERATE-A-32-CHAR-ENCRYPTION-KEY]
 ```
 
+### Google OAuth
+```
+GOOGLE_CLIENT_ID=[YOUR-GOOGLE-CLIENT-ID]
+GOOGLE_CLIENT_SECRET=[YOUR-GOOGLE-CLIENT-SECRET]
+```
+
+### Admin Access Control
+```
+ADMIN_EMAILS=admin@yourcompany.com,superadmin@yourcompany.com
+```
+
 ## 2. Supabase Setup
 
 1. Create a new Supabase project

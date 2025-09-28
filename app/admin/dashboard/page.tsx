@@ -31,6 +31,8 @@ import {
   Search
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 interface Order {
   id: string
@@ -60,6 +62,8 @@ interface Order {
 }
 
 export default function AdminDashboard() {
+  const { user, loading: authLoading, isAdmin } = useAuth()
+  const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -67,8 +71,15 @@ export default function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    if (!authLoading && !isAdmin) {
+      router.push('/dashboard')
+      return
+    }
+    
+    if (isAdmin) {
+      fetchOrders()
+    }
+  }, [authLoading, isAdmin, router])
 
   const fetchOrders = async () => {
     try {
@@ -135,10 +146,21 @@ export default function AdminDashboard() {
     totalRevenue: orders.reduce((sum, o) => sum + o.totalAmount, 0),
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+        </div>
       </div>
     )
   }

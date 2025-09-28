@@ -82,7 +82,7 @@ export default function DashboardLayout({ children, title, description }: Dashbo
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 font-medium truncate">
-                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+                {user?.name || user?.email?.split('@')[0] || 'User'}
               </p>
               <p className="text-gray-500 text-xs truncate">
                 {user?.email || 'user@example.com'}

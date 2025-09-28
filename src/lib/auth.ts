@@ -1,86 +1,95 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import CryptoJS from 'crypto-js';
+import { NextAuthOptions } from 'next-auth'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import GoogleProvider from 'next-auth/providers/google'
+import { prisma } from './prisma'
+import { UserRole } from '@prisma/client'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-minimum-32-characters';
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'fallback-encryption-key-32-chars';
-
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  workspaceId?: string;
-  role?: string;
-}
-
-// Password hashing
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12;
-  return await bcrypt.hash(password, saltRounds);
-}
-
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
-}
-
-// JWT token management
-export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
-}
-
-export function verifyToken(token: string): JWTPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch (error) {
-    return null;
+// Extend NextAuth types
+declare module 'next-auth' {
+  interface User {
+    id: string
+    role: UserRole
+  }
+  
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name?: string | null
+      image?: string | null
+      role: UserRole
+    }
   }
 }
 
-// Encryption utilities for sensitive data
-export function encrypt(text: string): string {
-  return CryptoJS.AES.encrypt(text, ENCRYPTION_KEY).toString();
-}
+export const authOptions: NextAuthOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'google') {
+        // Check if user exists in database
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        })
 
-export function decrypt(encryptedText: string): string {
-  const bytes = CryptoJS.AES.decrypt(encryptedText, ENCRYPTION_KEY);
-  return bytes.toString(CryptoJS.enc.Utf8);
-}
+        if (!existingUser) {
+          // Create new user with appropriate role
+          const adminEmails = process.env.ADMIN_EMAILS?.split(',') || []
+          const isAdmin = adminEmails.includes(user.email!)
 
-// Role-based access control
-export enum Role {
-  OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER',
-  VIEWER = 'VIEWER'
-}
+          await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name,
+              fullName: user.name,
+              avatarUrl: user.image,
+              role: isAdmin ? UserRole.ADMIN : UserRole.USER,
+            },
+          })
+        } else {
+          // Update last login
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { lastLogin: new Date() },
+          })
+        }
+      }
+      return true
+    },
+    async session({ session, user }) {
+      if (session?.user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email! },
+          select: { id: true, role: true, fullName: true, avatarUrl: true },
+        })
 
-export function hasPermission(userRole: Role, requiredRole: Role): boolean {
-  const roleHierarchy = {
-    [Role.VIEWER]: 1,
-    [Role.MEMBER]: 2,
-    [Role.ADMIN]: 3,
-    [Role.OWNER]: 4
-  };
-  
-  return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
-}
-
-export function requireRole(requiredRole: Role) {
-  return (req: any, res: any, next: any) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const payload = verifyToken(token);
-    if (!payload || !payload.role) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-
-    if (!hasPermission(payload.role as Role, requiredRole)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-
-    req.user = payload;
-    next();
-  };
+        if (dbUser) {
+          session.user.id = dbUser.id
+          session.user.role = dbUser.role
+          session.user.name = dbUser.fullName || session.user.name
+          session.user.image = dbUser.avatarUrl || session.user.image
+        }
+      }
+      return session
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role
+      }
+      return token
+    },
+  },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error',
+  },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 }
