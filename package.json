@@ -1,12 +1,16 @@
 {
-  "name": "my-v0-project",
+  "name": "inbox-navigator",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx scripts/setup-db.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
