@@ -107,7 +107,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           name: session.customer_details?.name || workspace.primaryUser.fullName || 'Unknown',
           email: session.customer_email || workspace.primaryUser.email,
           workspaceId: workspace_id,
-          productsBought: [] as string[], // Empty array
+          productsBought: "[]", // Empty array as JSON string
         },
       });
     }
@@ -135,8 +135,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         stripeCustomerId: customer?.id as string,
         productId: 'inbox_basic',
         priceId: 'price_inbox_basic',
-        productsBought: ['inbox_basic'] as string[],
-        typesOfInboxes: [InboxType.GSUITE],
+        productsBought: '["inbox_basic"]',
+        typesOfInboxes: '["GSUITE"]',
       },
     });
 
@@ -156,7 +156,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         orderId: order.id,
         stepCompleted: 0,
         isCompleted: false,
-        preferredDomains: [] as string[], // Empty array
+        preferredDomains: "[]", // Empty array as JSON string
       },
     });
 

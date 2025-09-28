@@ -1,135 +1,116 @@
-"use client";
+'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface User {
-  id: string;
-  email: string;
-  user_metadata?: {
-    full_name?: string;
-  };
+  id: string
+  email: string
+  name?: string
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: any | null;
-  loading: boolean;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  createWorkspace: (name: string, description?: string) => Promise<{ error: any; workspace?: any }>;
-  currentWorkspace: any | null;
-  setCurrentWorkspace: (workspace: any) => void;
+  user: User | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  signOut: () => void
+  isAdmin: boolean
+  isSuperAdmin: boolean
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [currentWorkspace, setCurrentWorkspace] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    // Simulate loading
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const signUp = async (email: string, password: string, fullName?: string) => {
-    try {
-      // Mock signup - in real app, this would call Supabase
-      const mockUser = {
-        id: `user_${Date.now()}`,
-        email,
-        user_metadata: { full_name: fullName },
-      };
-      
-      setUser(mockUser);
-      setSession({ user: mockUser });
-      
-      return { error: null };
-    } catch (error) {
-      return { error };
+    // Check for existing session on mount
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+        } catch (error) {
+          localStorage.removeItem('user')
+        }
+      }
+      setLoading(false)
     }
-  };
+
+    checkAuth()
+  }, [])
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Mock signin - in real app, this would call Supabase
-      const mockUser = {
-        id: `user_${Date.now()}`,
-        email,
-        user_metadata: { full_name: 'Test User' },
-      };
+      // For now, create a simple mock user
+      // In a real app, this would call your API
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: email.split('@')[0],
+        role: email.includes('admin') ? 'ADMIN' : 'USER'
+      }
       
-      setUser(mockUser);
-      setSession({ user: mockUser });
-      
-      return { error: null };
+      setUser(mockUser)
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      return { success: true }
     } catch (error) {
-      return { error };
+      return { success: false, error: 'Failed to sign in' }
     }
-  };
+  }
 
-  const signOut = async () => {
-    setUser(null);
-    setSession(null);
-    setCurrentWorkspace(null);
-  };
-
-  const createWorkspace = async (name: string, description?: string) => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
-      // Mock workspace creation
-      const workspace = {
-        id: `workspace_${Date.now()}`,
-        name,
-        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-        description: description || null,
-        ownerId: user?.id || 'mock_user_id',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        owner: {
-          id: user?.id || 'mock_user_id',
-          email: user?.email || 'user@example.com',
-          fullName: user?.user_metadata?.full_name || 'Mock User',
-        },
-        _count: {
-          members: 1,
-          clients: 0,
-          domains: 0,
-          inboxes: 0,
-        },
-      };
+      // For now, create a simple mock user
+      // In a real app, this would call your API
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: name,
+        role: 'USER'
+      }
       
-      setCurrentWorkspace(workspace);
-      return { error: null, workspace };
+      setUser(mockUser)
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      return { success: true }
     } catch (error) {
-      return { error };
+      return { success: false, error: 'Failed to sign up' }
     }
-  };
+  }
 
-  const value = {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    createWorkspace,
-    currentWorkspace,
-    setCurrentWorkspace,
-  };
+  const signOut = () => {
+    setUser(null)
+    localStorage.removeItem('user')
+    router.push('/auth/signin')
+  }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      isAdmin,
+      isSuperAdmin,
+    }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context;
+  return context
 }
