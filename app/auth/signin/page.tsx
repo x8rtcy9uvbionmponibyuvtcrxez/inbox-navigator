@@ -2,50 +2,47 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Chrome, Mail, Lock } from 'lucide-react'
+import { Mail, User } from 'lucide-react'
 
 export default function SignInPage() {
-  const { signIn, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  
+  const { signIn, signUp } = useAuth()
+  const router = useRouter()
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    try {
-      await signIn('google')
-    } catch (error) {
-      console.error('Google sign-in error:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
+
     try {
-      // For now, redirect to Google sign-in
-      // In a real app, you'd implement email/password authentication
-      await signIn('google')
+      let result
+      if (isSignUp) {
+        result = await signUp(email, password, name)
+      } else {
+        result = await signIn(email, password)
+      }
+
+      if (result.success) {
+        router.push('/')
+      } else {
+        setError(result.error || 'Authentication failed')
+      }
     } catch (error) {
-      console.error('Email sign-in error:', error)
+      setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    )
   }
 
   return (
@@ -53,42 +50,44 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Access your inbox management dashboard
+            {isSignUp ? 'Get started with your inbox management dashboard' : 'Access your inbox management dashboard'}
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">Welcome Back</CardTitle>
+            <CardTitle className="text-center">
+              {isSignUp ? 'Welcome' : 'Welcome Back'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Google Sign In */}
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              className="w-full"
-              variant="outline"
-            >
-              <Chrome className="w-5 h-5 mr-2" />
-              {isLoading ? 'Signing in...' : 'Continue with Google'}
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                {error}
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  Or continue with email
-                </span>
-              </div>
-            </div>
+            )}
 
-            {/* Email Sign In Form */}
-            <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    required={isSignUp}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="mt-1"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="email">Email address</Label>
                 <Input
@@ -110,7 +109,7 @@ export default function SignInPage() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -124,16 +123,23 @@ export default function SignInPage() {
                 disabled={isLoading}
                 className="w-full"
               >
-                <Mail className="w-4 h-4 mr-2" />
-                {isLoading ? 'Signing in...' : 'Sign in with Email'}
+                {isSignUp ? <User className="w-4 h-4 mr-2" /> : <Mail className="w-4 h-4 mr-2" />}
+                {isLoading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign in with Email')}
               </Button>
             </form>
 
             <div className="text-center text-sm text-gray-600">
               <p>
-                Don't have an account?{' '}
-                <Button variant="link" className="p-0 h-auto">
-                  Sign up here
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp)
+                    setError('')
+                  }}
+                >
+                  {isSignUp ? 'Sign in here' : 'Sign up here'}
                 </Button>
               </p>
             </div>
@@ -142,7 +148,7 @@ export default function SignInPage() {
 
         <div className="text-center text-xs text-gray-500">
           <p>
-            By signing in, you agree to our{' '}
+            By {isSignUp ? 'creating an account' : 'signing in'}, you agree to our{' '}
             <Button variant="link" className="p-0 h-auto text-xs">
               Terms of Service
             </Button>{' '}

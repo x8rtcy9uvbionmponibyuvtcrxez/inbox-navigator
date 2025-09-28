@@ -74,7 +74,6 @@ export function TopNav() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className={cn("gap-2")}>
                     <Avatar className="size-6">
-                      <AvatarImage src={user.image} alt={user.name || user.email} />
                       <AvatarFallback>
                         {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
                       </AvatarFallback>

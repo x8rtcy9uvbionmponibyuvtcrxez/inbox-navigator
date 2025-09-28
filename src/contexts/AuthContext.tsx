@@ -1,22 +1,21 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
-import { UserRole } from '@prisma/client'
+import { useRouter } from 'next/navigation'
 
 interface User {
   id: string
   email: string
   name?: string
-  image?: string
-  role: UserRole
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
 }
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  signIn: (provider?: string) => Promise<void>
-  signOut: () => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  signOut: () => void
   isAdmin: boolean
   isSuperAdmin: boolean
 }
@@ -24,40 +23,82 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    if (status !== 'loading') {
+    // Check for existing session on mount
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+        } catch (error) {
+          localStorage.removeItem('user')
+        }
+      }
       setLoading(false)
     }
-  }, [status])
 
-  const user: User | null = session?.user ? {
-    id: (session.user as any).id || '',
-    email: session.user.email || '',
-    name: session.user.name || undefined,
-    image: session.user.image || undefined,
-    role: (session.user as any).role || UserRole.USER,
-  } : null
+    checkAuth()
+  }, [])
 
-  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN
-  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN
-
-  const handleSignIn = async (provider?: string) => {
-    await signIn(provider || 'google')
+  const signIn = async (email: string, password: string) => {
+    try {
+      // For now, create a simple mock user
+      // In a real app, this would call your API
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: email.split('@')[0],
+        role: email.includes('admin') ? 'ADMIN' : 'USER'
+      }
+      
+      setUser(mockUser)
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Failed to sign in' }
+    }
   }
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/' })
+  const signUp = async (email: string, password: string, name: string) => {
+    try {
+      // For now, create a simple mock user
+      // In a real app, this would call your API
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: name,
+        role: 'USER'
+      }
+      
+      setUser(mockUser)
+      localStorage.setItem('user', JSON.stringify(mockUser))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: 'Failed to sign up' }
+    }
   }
+
+  const signOut = () => {
+    setUser(null)
+    localStorage.removeItem('user')
+    router.push('/auth/signin')
+  }
+
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
 
   return (
     <AuthContext.Provider value={{
       user,
       loading,
-      signIn: handleSignIn,
-      signOut: handleSignOut,
+      signIn,
+      signUp,
+      signOut,
       isAdmin,
       isSuperAdmin,
     }}>
