@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
       isCompleted,
     } = await request.json();
 
+    console.log('Onboarding save request:', { sessionId, espProvider, stepCompleted, isCompleted });
+
     if (!sessionId) {
       return NextResponse.json(
         { error: 'Session ID is required' },
@@ -31,6 +33,8 @@ export async function POST(request: NextRequest) {
       where: { stripeSessionId: sessionId },
       include: { workspace: true },
     });
+
+    console.log('Order found:', order ? 'Yes' : 'No', order?.id);
 
     if (!order) {
       return NextResponse.json(
@@ -99,8 +103,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error saving onboarding data:', error);
+    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to save onboarding data' },
+      { error: 'Failed to save onboarding data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
