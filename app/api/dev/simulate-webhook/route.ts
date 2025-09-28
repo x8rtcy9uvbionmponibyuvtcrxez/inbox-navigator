@@ -48,26 +48,36 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create a dummy order (simulating webhook behavior)
-    const order = await prisma.order.create({
-      data: {
-        workspaceId: workspace.id,
-        clientId: client.id,
-        orderNumber: `ORD-${Date.now()}`,
-        stripeSessionId: sessionId,
-        status: OrderStatus.PLACED,
-        totalAmount: totalAmount || (quantity * 300), // $3 per inbox in cents
-        currency: 'usd',
-        quantity: quantity,
-        inboxCount: quantity,
-        domainCount: Math.min(quantity, 3),
-        productId: 'prod_test',
-        priceId: 'price_test',
-        productsBought: '["inbox_basic"]',
-        typesOfInboxes: `["${InboxType.GSUITE}"]`,
-        orderDate: new Date()
-      }
+    // Check if order already exists
+    let order = await prisma.order.findUnique({
+      where: { stripeSessionId: sessionId }
     });
+
+    if (!order) {
+      // Create a dummy order (simulating webhook behavior)
+      order = await prisma.order.create({
+        data: {
+          workspaceId: workspace.id,
+          clientId: client.id,
+          orderNumber: `ORD-${Date.now()}`,
+          stripeSessionId: sessionId,
+          status: OrderStatus.PLACED,
+          totalAmount: totalAmount || (quantity * 300), // $3 per inbox in cents
+          currency: 'usd',
+          quantity: quantity,
+          inboxCount: quantity,
+          domainCount: Math.min(quantity, 3),
+          productId: 'prod_test',
+          priceId: 'price_test',
+          productsBought: '["inbox_basic"]',
+          typesOfInboxes: `["${InboxType.GSUITE}"]`,
+          orderDate: new Date()
+        }
+      });
+      console.log('Created new order:', order.orderNumber);
+    } else {
+      console.log('Order already exists:', order.orderNumber);
+    }
 
     console.log('Created order via simulated webhook:', order.orderNumber);
 
