@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { UserRole, OrderStatus, InboxType, DomainStatus } from '@prisma/client';
+import { UserRole, OrderStatus, InboxType } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
-    const { sessionId, customerEmail, customerName, totalAmount, quantity = 2 } = await request.json();
+    const { 
+      sessionId, 
+      customerEmail, 
+      customerName, 
+      totalAmount, 
+      quantity = 2,
+      workspaceSlug = 'test-workspace',
+      productId = 'prod_test',
+      priceId = 'price_test',
+      productsBought = ['inbox_basic'],
+      typesOfInboxes = [InboxType.GSUITE]
+    } = await request.json();
 
     if (!sessionId || !customerEmail) {
       return NextResponse.json(
         { error: 'Session ID and customer email are required' },
+        { status: 400 }
+      );
+    }
+
+    if (quantity < 1 || quantity > 100) {
+      return NextResponse.json(
+        { error: 'Quantity must be between 1 and 100' },
         { status: 400 }
       );
     }
@@ -28,11 +46,11 @@ export async function POST(request: NextRequest) {
 
     // Create a dummy workspace
     const workspace = await prisma.workspace.upsert({
-      where: { slug: 'test-workspace' },
+      where: { slug: workspaceSlug },
       update: {},
       create: {
-        name: 'Test Workspace',
-        slug: 'test-workspace',
+        name: `${customerName || 'Test User'}'s Workspace`,
+        slug: workspaceSlug,
         primaryUserId: user.id
       },
       include: { primaryUser: true }
@@ -44,7 +62,7 @@ export async function POST(request: NextRequest) {
         name: customerName || 'Test User',
         email: customerEmail,
         workspaceId: workspace.id,
-        productsBought: ['inbox_basic']
+        productsBought: productsBought
       }
     });
 
@@ -67,10 +85,10 @@ export async function POST(request: NextRequest) {
           quantity: quantity,
           inboxCount: quantity,
           domainCount: Math.min(quantity, 3),
-          productId: 'prod_test',
-          priceId: 'price_test',
-          productsBought: ['inbox_basic'],
-          typesOfInboxes: [InboxType.GSUITE],
+          productId: productId,
+          priceId: priceId,
+          productsBought: productsBought,
+          typesOfInboxes: typesOfInboxes,
           orderDate: new Date()
         }
       });

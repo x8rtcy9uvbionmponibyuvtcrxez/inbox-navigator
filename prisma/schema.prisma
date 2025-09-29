@@ -204,7 +204,7 @@ model Subscription {
   status                SubscriptionStatus @default(ACTIVE)
   plan                  SubscriptionPlan  @default(BASIC)
   billingPeriod         BillingPeriod     @default(MONTHLY)
-  amount                Decimal @db.Decimal(10, 2)
+  amount                Float
   startedAt             DateTime          @map("started_at")
   cancelsAt             DateTime?         @map("cancels_at")
   createdAt             DateTime          @default(now()) @map("created_at")

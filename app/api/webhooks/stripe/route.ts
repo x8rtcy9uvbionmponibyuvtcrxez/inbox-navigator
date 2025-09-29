@@ -107,7 +107,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           name: session.customer_details?.name || workspace.primaryUser.fullName || 'Unknown',
           email: session.customer_email || workspace.primaryUser.email,
           workspaceId: workspace_id,
-          productsBought: [], // Empty array as JSON string
+          productsBought: [], // Empty array
         },
       });
     }
@@ -156,7 +156,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         orderId: order.id,
         stepCompleted: 0,
         isCompleted: false,
-        preferredDomains: [], // Empty array as JSON string
+        preferredDomains: [], // Empty array
       },
     });
 
