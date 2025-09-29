@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UserRole, OrderStatus, InboxType } from '@prisma/client';
+import { 
+  validateRequiredString, 
+  validateEmail, 
+  validateNumberRange, 
+  validateArray,
+  validateEnum,
+  combineValidationResults,
+  createValidationErrorResponse
+} from '../../../../lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,16 +26,19 @@ export async function POST(request: NextRequest) {
       typesOfInboxes = [InboxType.GSUITE]
     } = await request.json();
 
-    if (!sessionId || !customerEmail) {
-      return NextResponse.json(
-        { error: 'Session ID and customer email are required' },
-        { status: 400 }
-      );
-    }
+    // Validate input
+    const validationResult = combineValidationResults(
+      validateRequiredString(sessionId, 'sessionId'),
+      validateRequiredString(customerEmail, 'customerEmail'),
+      validateEmail(customerEmail) ? null : { field: 'customerEmail', message: 'customerEmail must be a valid email address' },
+      validateNumberRange(quantity, 'quantity', 1, 100),
+      validateArray(productsBought, 'productsBought', 1),
+      validateArray(typesOfInboxes, 'typesOfInboxes', 1)
+    );
 
-    if (quantity < 1 || quantity > 100) {
+    if (!validationResult.isValid) {
       return NextResponse.json(
-        { error: 'Quantity must be between 1 and 100' },
+        createValidationErrorResponse(validationResult.errors),
         { status: 400 }
       );
     }
