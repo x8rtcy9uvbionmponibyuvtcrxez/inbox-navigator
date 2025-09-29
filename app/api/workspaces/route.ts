@@ -1,21 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
-// import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
+import { log } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
+      log.warn('Unauthorized workspace request', { requestId, error: error?.message });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // For now, return empty array since database is not set up
-    // TODO: Implement proper database queries once Prisma is working
-    return NextResponse.json([]);
+    // Get user's workspaces
+    const workspaces = await prisma.workspace.findMany({
+      where: {
+        OR: [
+          { primaryUserId: user.id },
+          { members: { some: { userId: user.id } } }
+        ]
+      },
+      include: {
+        primaryUser: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          }
+        },
+        _count: {
+          select: {
+            members: true,
+            clients: true,
+            domains: true,
+            inboxes: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    log.info('Workspaces fetched', { requestId, userId: user.id, count: workspaces.length });
+
+    return NextResponse.json(workspaces);
   } catch (error) {
-    console.error('Error fetching workspaces:', error);
+    log.error('Error fetching workspaces', error as Error, { requestId });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -24,7 +56,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      log.warn('Unauthorized workspace creation', { requestId, error: error?.message });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { name, description } = await request.json();
 
     if (!name) {
@@ -40,33 +82,59 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
-    // For now, return a mock workspace since database is not set up
-    // TODO: Implement proper database creation once Prisma is working
-    const mockWorkspace = {
-      id: `workspace_${Date.now()}`,
-      name,
-      slug,
-      description: description || null,
-      ownerId: 'mock_user_id',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      owner: {
-        id: 'mock_user_id',
-        email: 'mock@example.com',
-        fullName: 'Mock User',
-      },
-      _count: {
-        members: 1,
-        clients: 0,
-        domains: 0,
-        inboxes: 0,
-      },
-    };
+    // Check if slug already exists
+    const existingWorkspace = await prisma.workspace.findUnique({
+      where: { slug }
+    });
 
-    console.log('Workspace created successfully:', mockWorkspace);
-    return NextResponse.json(mockWorkspace, { status: 201 });
+    if (existingWorkspace) {
+      return NextResponse.json(
+        { error: 'Workspace with this name already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Create workspace
+    const workspace = await prisma.workspace.create({
+      data: {
+        name,
+        slug,
+        description: description || null,
+        primaryUserId: user.id,
+      },
+      include: {
+        primaryUser: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          }
+        },
+        _count: {
+          select: {
+            members: true,
+            clients: true,
+            domains: true,
+            inboxes: true,
+          }
+        }
+      }
+    });
+
+    // Add user as workspace member
+    await prisma.workspaceMember.create({
+      data: {
+        workspaceId: workspace.id,
+        userId: user.id,
+        role: 'OWNER'
+      }
+    });
+
+    log.info('Workspace created successfully', { requestId, workspaceId: workspace.id, userId: user.id });
+
+    return NextResponse.json(workspace, { status: 201 });
   } catch (error) {
-    console.error('Error creating workspace:', error);
+    log.error('Error creating workspace', error as Error, { requestId });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

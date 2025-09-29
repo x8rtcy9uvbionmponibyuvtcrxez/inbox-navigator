@@ -1,19 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+import { prisma } from '@/lib/prisma';
+import { log } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
-    // In a real app, you'd get the user ID from the session/auth
-    // For now, we'll get all inboxes (you should filter by user/workspace)
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      log.warn('Unauthorized customer inboxes request', { requestId, error: error?.message });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user's workspaces
+    const workspaces = await prisma.workspace.findMany({
+      where: {
+        OR: [
+          { primaryUserId: user.id },
+          { members: { some: { userId: user.id } } }
+        ]
+      },
+      select: { id: true }
+    });
+
+    const workspaceIds = workspaces.map(w => w.id);
+
+    if (workspaceIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Get inboxes for user's workspaces
     const inboxes = await prisma.inbox.findMany({
+      where: {
+        workspaceId: { in: workspaceIds }
+      },
       include: {
         domain: {
           select: {
+            id: true,
             name: true,
+            status: true
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
           }
         },
         personas: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
             role: true,
@@ -21,14 +69,16 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: { createdAt: 'desc' }
-    })
+    });
 
-    return NextResponse.json(inboxes)
+    log.info('Customer inboxes fetched', { requestId, userId: user.id, count: inboxes.length });
+
+    return NextResponse.json(inboxes);
   } catch (error) {
-    console.error('Error fetching customer inboxes:', error)
+    log.error('Error fetching customer inboxes', error as Error, { requestId });
     return NextResponse.json(
-      { error: 'Failed to fetch inboxes' },
+      { error: 'Internal server error' },
       { status: 500 }
-    )
+    );
   }
 }
