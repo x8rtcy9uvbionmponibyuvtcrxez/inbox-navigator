@@ -1,69 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
-import { InboxType } from '@prisma/client';
+import { InboxType, OrderStatus } from '@prisma/client';
+import { env } from '@/lib/env';
+import { log } from '@/lib/logger';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// In-memory idempotency store (in production, use Redis)
+const processedEvents = new Set<string>();
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
-      console.error('No Stripe signature found');
+      log.error('No Stripe signature found', new Error('Missing signature'), { requestId });
       return NextResponse.json({ error: 'No signature' }, { status: 400 });
     }
 
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripe.webhooks.constructEvent(body, signature, env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
+      log.error('Webhook signature verification failed', err as Error, { requestId });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    console.log('Received webhook event:', event.type);
+    // Idempotency check
+    if (processedEvents.has(event.id)) {
+      log.info('Event already processed, skipping', { requestId, eventId: event.id });
+      return NextResponse.json({ received: true, idempotent: true });
+    }
+
+    log.info('Processing webhook event', { requestId, eventType: event.type, eventId: event.id });
 
     // Handle the event
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session, requestId);
         break;
       case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent, requestId);
         break;
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent, requestId);
         break;
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        log.info('Unhandled event type', { requestId, eventType: event.type });
     }
+
+    // Mark event as processed
+    processedEvents.add(event.id);
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    log.error('Webhook error', error as Error, { requestId });
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 }
 
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, requestId: string) {
   try {
-    console.log('Processing checkout session completed:', session.id);
+    log.info('Processing checkout session completed', { requestId, sessionId: session.id });
 
     // Extract metadata
     const { workspace_id, workspace_name, quantity, type } = session.metadata || {};
     
     if (type !== 'inbox_purchase') {
-      console.log('Ignoring non-inbox purchase event');
+      log.info('Ignoring non-inbox purchase event', { requestId, type });
       return;
     }
 
     if (!workspace_id || !quantity) {
-      console.error('Missing required metadata:', { workspace_id, quantity });
+      log.error('Missing required metadata', new Error('Missing metadata'), { requestId, workspace_id, quantity });
       return;
     }
 
@@ -89,7 +103,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
 
     if (!workspace) {
-      console.error('Workspace not found:', workspace_id);
+      log.error('Workspace not found', new Error('Workspace not found'), { requestId, workspace_id });
       return;
     }
 
@@ -124,7 +138,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        status: 'PLACED',
+        status: OrderStatus.PLACED,
         inboxCount: quantityNum,
         domainCount: 0, // Will be set during onboarding
         totalAmount: quantityNum * 300, // $3.00 per inbox in cents
@@ -160,42 +174,42 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       },
     });
 
-    console.log('Order created successfully:', order.id);
+    log.info('Order created successfully', { requestId, orderId: order.id });
 
     // TODO: Send email notification to admin
     // TODO: Send confirmation email to customer
 
   } catch (error) {
-    console.error('Error handling checkout session completed:', error);
+    log.error('Error handling checkout session completed', error as Error, { requestId });
   }
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent, requestId: string) {
   try {
-    console.log('Payment succeeded:', paymentIntent.id);
+    log.info('Payment succeeded', { requestId, paymentIntentId: paymentIntent.id });
     
     // Update order status to processing
     await prisma.order.updateMany({
       where: { stripeSessionId: paymentIntent.metadata?.session_id },
-      data: { status: 'PROCESSING' },
+      data: { status: OrderStatus.PROCESSING },
     });
 
   } catch (error) {
-    console.error('Error handling payment intent succeeded:', error);
+    log.error('Error handling payment intent succeeded', error as Error, { requestId });
   }
 }
 
-async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent, requestId: string) {
   try {
-    console.log('Payment failed:', paymentIntent.id);
+    log.info('Payment failed', { requestId, paymentIntentId: paymentIntent.id });
     
-    // Update order status to failed
+    // Update order status to cancelled
     await prisma.order.updateMany({
       where: { stripeSessionId: paymentIntent.metadata?.session_id },
-      data: { status: 'CANCELLED' },
+      data: { status: OrderStatus.CANCELLED },
     });
 
   } catch (error) {
-    console.error('Error handling payment intent failed:', error);
+    log.error('Error handling payment intent failed', error as Error, { requestId });
   }
 }

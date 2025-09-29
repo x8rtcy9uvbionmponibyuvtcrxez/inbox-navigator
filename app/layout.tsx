@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
 import { ConditionalLayout } from "@/components/conditional-layout"
+import "@/lib/env" // Validate environment variables at boot
 
 export const metadata: Metadata = {
   title: "Inbox Navigator",

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { OrderStatus } from '@prisma/client';
+import { log } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     const body = await request.json();
     const { 
@@ -15,7 +18,8 @@ export async function POST(request: NextRequest) {
       ...onboardingData 
     } = body;
 
-    console.log('Onboarding save request:', { 
+    log.info('Onboarding save request', { 
+      requestId,
       sessionId, 
       espPlatform, 
       stepCompleted, 
@@ -37,9 +41,10 @@ export async function POST(request: NextRequest) {
       include: { workspace: true },
     });
 
-    console.log('Order found:', order ? 'Yes' : 'No', order?.id);
+    log.info('Order lookup result', { requestId, orderFound: !!order, orderId: order?.id });
 
     if (!order) {
+      log.warn('Order not found for session', { requestId, sessionId });
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
@@ -80,6 +85,8 @@ export async function POST(request: NextRequest) {
 
     // If onboarding is completed, update order status
     if (isCompleted) {
+        log.info('Onboarding completed, updating order status', { requestId, orderId: order.id });
+        
         await prisma.order.update({
           where: { id: order.id },
           data: { 
@@ -100,12 +107,43 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error saving onboarding data:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    log.error('Error saving onboarding data', error as Error, { requestId });
     return NextResponse.json(
       { error: 'Failed to save onboarding data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
+
+/**
+ * Test payload example for onboarding save:
+ * 
+ * POST /api/onboarding/save
+ * {
+ *   "sessionId": "cs_test_1234567890",
+ *   "businessType": "SaaS",
+ *   "industry": "Technology",
+ *   "companySize": "10-50",
+ *   "website": "https://example.com",
+ *   "preferredDomains": ["example.com", "mycompany.com"],
+ *   "domainRequirements": "Need custom domain for email",
+ *   "espProvider": "Smartlead",
+ *   "espCredentials": {
+ *     "apiKey": "sk_1234567890",
+ *     "username": "user@example.com"
+ *   },
+ *   "specialRequirements": "Need warmup for cold outreach",
+ *   "stepCompleted": 5,
+ *   "isCompleted": true,
+ *   "customTags": ["enterprise", "high-value"],
+ *   "personas": [
+ *     {
+ *       "fullName": "John Doe",
+ *       "firstName": "John",
+ *       "lastName": "Doe",
+ *       "role": "CEO",
+ *       "tags": ["decision-maker", "enterprise"]
+ *     }
+ *   ]
+ * }
+ */
