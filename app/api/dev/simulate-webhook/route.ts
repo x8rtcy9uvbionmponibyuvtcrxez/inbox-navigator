@@ -10,8 +10,12 @@ import {
   combineValidationResults,
   createValidationErrorResponse
 } from '../../../../lib/validation';
+import { log } from '../../../../lib/logger';
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
   try {
     const { 
       sessionId, 
@@ -26,6 +30,8 @@ export async function POST(request: NextRequest) {
       typesOfInboxes = [InboxType.GSUITE]
     } = await request.json();
 
+    log.apiRequest('POST', '/api/dev/simulate-webhook', { requestId, sessionId, customerEmail });
+
     // Validate input
     const validationResult = combineValidationResults(
       validateRequiredString(sessionId, 'sessionId'),
@@ -37,13 +43,14 @@ export async function POST(request: NextRequest) {
     );
 
     if (!validationResult.isValid) {
+      log.warn('Validation failed for simulate-webhook', { requestId, errors: validationResult.errors });
       return NextResponse.json(
         createValidationErrorResponse(validationResult.errors),
         { status: 400 }
       );
     }
 
-    console.log('Simulating Stripe webhook for session:', sessionId);
+    log.info('Simulating Stripe webhook for session', { requestId, sessionId, customerEmail, quantity });
 
     // Create a dummy user first
     const user = await prisma.user.upsert({
@@ -104,12 +111,13 @@ export async function POST(request: NextRequest) {
           orderDate: new Date()
         }
       });
-      console.log('Created new order:', order.orderNumber);
+      log.businessEvent('Order created', { requestId, orderId: order.id, orderNumber: order.orderNumber });
     } else {
-      console.log('Order already exists:', order.orderNumber);
+      log.info('Order already exists', { requestId, orderId: order.id, orderNumber: order.orderNumber });
     }
 
-    console.log('Created order via simulated webhook:', order.orderNumber);
+    const duration = Date.now() - startTime;
+    log.apiResponse('POST', '/api/dev/simulate-webhook', 200, duration, { requestId, orderId: order.id });
 
     return NextResponse.json({
       success: true,
@@ -118,7 +126,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error simulating webhook:', error);
+    const duration = Date.now() - startTime;
+    log.apiError('POST', '/api/dev/simulate-webhook', error as Error, 500, { requestId });
+    
     return NextResponse.json(
       { 
         error: 'Failed to simulate webhook', 
